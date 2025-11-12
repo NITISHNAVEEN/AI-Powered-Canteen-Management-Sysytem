@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   setPersistence,
@@ -15,7 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
-import { useAuth } from '@/firebase';
+import { useAuth, useUser } from '@/firebase';
 
 export default function LoginPage() {
   const [isCaterer, setIsCaterer] = useState(false);
@@ -25,6 +25,13 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.push('/');
+    }
+  }, [user, isUserLoading, router]);
 
   const handleLogin = async () => {
     if (!auth) return;
@@ -62,6 +69,14 @@ export default function LoginPage() {
       });
     }
   };
+
+  if (isUserLoading || user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        Loading...
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
