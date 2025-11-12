@@ -6,6 +6,7 @@ import {
   setPersistence,
   browserSessionPersistence,
   browserLocalPersistence,
+  signInWithEmailAndPassword,
 } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +15,10 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
+import {
+  initiateEmailSignIn,
+  initiateEmailSignUp,
+} from '@/firebase/non-blocking-login';
 import { useAuth, useUser } from '@/firebase';
 
 export default function LoginPage() {
@@ -34,7 +38,11 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isUserLoading && user) {
-      router.push('/');
+      if (user.email === 'caterer.admin@app.com') {
+         router.push('/caterer');
+      } else {
+         router.push('/');
+      }
     }
   }, [user, isUserLoading, router]);
 
@@ -50,11 +58,28 @@ export default function LoginPage() {
 
       if (isCaterer) {
         if (email === 'admin' && password === 'password') {
-          // For prototyping, we'll use a known account for the caterer.
-          // In a real app, you'd have a separate secure login mechanism.
-          initiateEmailSignIn(auth, 'caterer.admin@app.com', 'password');
-          toast({ title: 'Caterer login successful' });
-          router.push('/caterer');
+          const catererEmail = 'caterer.admin@app.com';
+          // Attempt to sign in first
+          signInWithEmailAndPassword(auth, catererEmail, 'password').catch(
+            (error) => {
+              // If the user does not exist, create it.
+              if (error.code === 'auth/user-not-found') {
+                initiateEmailSignUp(auth, catererEmail, 'password');
+                // The onAuthStateChanged listener will redirect upon successful creation/login
+                toast({ title: 'Caterer account created, logging in...' });
+              } else if (error.code === 'auth/wrong-password') {
+                toast({
+                  variant: 'destructive',
+                  title: 'Invalid caterer credentials',
+                });
+              } else {
+                 // For other errors, just try a non-blocking sign-in
+                 initiateEmailSignIn(auth, catererEmail, 'password');
+              }
+            }
+          );
+           toast({ title: 'Caterer login successful' });
+           // The redirect is now handled by the useEffect hook
         } else {
           toast({
             variant: 'destructive',
@@ -64,7 +89,7 @@ export default function LoginPage() {
       } else {
         initiateEmailSignIn(auth, email, password);
         toast({ title: 'Login successful' });
-        router.push('/');
+         // The redirect is now handled by the useEffect hook
       }
     } catch (error: any) {
       toast({
