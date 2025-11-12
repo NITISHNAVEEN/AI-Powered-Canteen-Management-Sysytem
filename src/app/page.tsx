@@ -17,12 +17,17 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 
 export default function Home() {
   const router = useRouter();
+  const pathname = usePathname();
   const [isCaterer, setIsCaterer] = useState(false);
+
+  useEffect(() => {
+    setIsCaterer(pathname === '/caterer');
+  }, [pathname]);
 
   const menuItems = [
     'Recommendations',
