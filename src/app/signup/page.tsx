@@ -82,7 +82,7 @@ export default function SignupPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="john.doe@students.iiit.ac.in"
+                placeholder="xyz@iiitdwd.ac.in"
                 value={iiitMailId}
                 onChange={(e) => setIiitMailId(e.target.value)}
               />
