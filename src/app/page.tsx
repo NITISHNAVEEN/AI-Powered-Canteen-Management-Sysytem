@@ -1,5 +1,5 @@
 'use client';
-import { Clock, User } from 'lucide-react';
+import { Clock, LogOut, User } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -21,15 +21,32 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useAuth, useUser } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
   const router = useRouter();
   const pathname = usePathname();
   const [isCaterer, setIsCaterer] = useState(false);
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
     setIsCaterer(pathname === '/caterer');
-  }, [pathname]);
+  }, [pathname, user, isUserLoading, router]);
+
+  const handleLogout = async () => {
+    if(auth){
+      await signOut(auth);
+      toast({ title: 'Logged out successfully' });
+      router.push('/login');
+    }
+  };
 
   const menuItems = [
     'Recommendations',
@@ -89,6 +106,14 @@ export default function Home() {
   };
 
 
+  if (isUserLoading || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        Loading...
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
       <Sidebar side="left">
@@ -111,16 +136,21 @@ export default function Home() {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-           <div className="flex items-center gap-2 p-2">
-              <Avatar>
-                <AvatarFallback>
-                  <User />
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold">User Name</span>
-                <span className="text-xs text-muted-foreground">user@email.com</span>
+           <div className="flex items-center justify-between p-2">
+              <div className="flex items-center gap-2">
+                <Avatar>
+                  <AvatarFallback>
+                    <User />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold">{user.displayName || 'User Name'}</span>
+                  <span className="text-xs text-muted-foreground">{user.email}</span>
+                </div>
               </div>
+               <Button variant="ghost" size="icon" onClick={handleLogout}>
+                <LogOut className="w-4 h-4" />
+               </Button>
             </div>
         </SidebarFooter>
       </Sidebar>
