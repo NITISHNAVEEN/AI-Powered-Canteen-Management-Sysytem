@@ -39,9 +39,9 @@ export default function LoginPage() {
   useEffect(() => {
     if (!isUserLoading && user) {
       if (user.email === 'caterer.admin@app.com') {
-         router.push('/caterer');
+        router.push('/caterer');
       } else {
-         router.push('/');
+        router.push('/');
       }
     }
   }, [user, isUserLoading, router]);
@@ -59,27 +59,20 @@ export default function LoginPage() {
       if (isCaterer) {
         if (email === 'admin' && password === 'password') {
           const catererEmail = 'caterer.admin@app.com';
-          // Attempt to sign in first
           signInWithEmailAndPassword(auth, catererEmail, 'password').catch(
             (error) => {
-              // If the user does not exist, create it.
               if (error.code === 'auth/user-not-found') {
                 initiateEmailSignUp(auth, catererEmail, 'password');
-                // The onAuthStateChanged listener will redirect upon successful creation/login
-                toast({ title: 'Caterer account created, logging in...' });
               } else if (error.code === 'auth/wrong-password') {
-                toast({
+                 toast({
                   variant: 'destructive',
                   title: 'Invalid caterer credentials',
                 });
               } else {
-                 // For other errors, just try a non-blocking sign-in
-                 initiateEmailSignIn(auth, catererEmail, 'password');
+                initiateEmailSignIn(auth, catererEmail, 'password');
               }
             }
           );
-           toast({ title: 'Caterer login successful' });
-           // The redirect is now handled by the useEffect hook
         } else {
           toast({
             variant: 'destructive',
@@ -87,12 +80,21 @@ export default function LoginPage() {
           });
         }
       } else {
-        initiateEmailSignIn(auth, email, password);
-        toast({ title: 'Login successful' });
-         // The redirect is now handled by the useEffect hook
+        signInWithEmailAndPassword(auth, email, password)
+          .catch((error) => {
+             if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                 toast({
+                  variant: 'destructive',
+                  title: 'Invalid credentials',
+                  description: 'Please check your email and password.',
+                });
+             } else {
+                initiateEmailSignIn(auth, email, password);
+             }
+          });
       }
     } catch (error: any) {
-      toast({
+       toast({
         variant: 'destructive',
         title: 'Login Failed',
         description: error.message,
