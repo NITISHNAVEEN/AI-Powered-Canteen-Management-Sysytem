@@ -26,6 +26,11 @@ export default function LoginPage() {
   const { toast } = useToast();
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     if (!isUserLoading && user) {
@@ -70,7 +75,7 @@ export default function LoginPage() {
     }
   };
 
-  if (isUserLoading || user) {
+  if (!isClient || isUserLoading || user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         Loading...

@@ -16,6 +16,11 @@ export default function ProfilePage() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -31,7 +36,7 @@ export default function ProfilePage() {
     }
   };
 
-  if (isUserLoading || !user) {
+  if (!isClient || isUserLoading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         Loading...

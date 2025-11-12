@@ -26,6 +26,11 @@ export default function CatererPage() {
   const pathname = usePathname();
   const [isCaterer, setIsCaterer] = useState(true);
   const { user, isUserLoading } = useUser();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -50,7 +55,7 @@ export default function CatererPage() {
     }
   };
 
-  if (isUserLoading || !user) {
+  if (!isClient || isUserLoading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         Loading...
