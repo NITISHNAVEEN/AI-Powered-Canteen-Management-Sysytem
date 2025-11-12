@@ -13,6 +13,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Home() {
   const menuItems = [
@@ -105,9 +106,11 @@ export default function Home() {
             {foodItems.map((item) => (
               <Card key={item.name}>
                 <CardContent className="flex items-center gap-4 p-4">
-                  <img
+                  <Image
                     src={item.image}
                     alt={item.name}
+                    width={96}
+                    height={96}
                     className="object-cover w-24 h-24 rounded-md"
                     data-ai-hint={item.imageHint}
                   />
@@ -128,11 +131,9 @@ export default function Home() {
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     <p className="font-semibold">₹{item.price}</p>
-                    <Link href="/order" passHref legacyBehavior>
-                      <Button asChild>
-                        <a>Order</a>
-                      </Button>
-                    </Link>
+                    <Button asChild>
+                      <Link href="/order">Order</Link>
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -141,16 +142,12 @@ export default function Home() {
         </main>
         
         <footer className="sticky bottom-0 flex items-center justify-between p-4 bg-background border-t">
-          <Link href="/filters" passHref legacyBehavior>
-            <Button variant="outline" asChild>
-              <a>Use filters</a>
-            </Button>
-          </Link>
-          <Link href="/checkout" passHref legacyBehavior>
-            <Button asChild>
-              <a>Checkout</a>
-            </Button>
-          </Link>
+          <Button variant="outline" asChild>
+            <Link href="/filters">Use filters</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/checkout">Checkout</Link>
+          </Button>
         </footer>
       </SidebarInset>
     </SidebarProvider>
