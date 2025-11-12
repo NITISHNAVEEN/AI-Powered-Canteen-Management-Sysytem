@@ -1,8 +1,9 @@
 'use client';
-import { Clock } from 'lucide-react';
+import { Clock, User } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -19,6 +20,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 export default function Home() {
   const router = useRouter();
@@ -108,6 +110,19 @@ export default function Home() {
             ))}
           </SidebarMenu>
         </SidebarContent>
+        <SidebarFooter>
+           <div className="flex items-center gap-2 p-2">
+              <Avatar>
+                <AvatarFallback>
+                  <User />
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold">User Name</span>
+                <span className="text-xs text-muted-foreground">user@email.com</span>
+              </div>
+            </div>
+        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <header className="flex items-center justify-between p-4 border-b">
