@@ -14,6 +14,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 export default function Home() {
   const menuItems = [
@@ -94,9 +96,10 @@ export default function Home() {
               <Clock className="w-5 h-5" />
               <span>08:00 am IST</span>
             </div>
-            <div className="flex items-center gap-2">
-              <User className="w-8 h-8 p-1.5 border rounded-full" />
-              <span>User Mode</span>
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="role-switch">User</Label>
+              <Switch id="role-switch" />
+              <Label htmlFor="role-switch">Caterer</Label>
             </div>
           </div>
         </header>
