@@ -72,7 +72,7 @@ export default function SignupPage() {
               <Label htmlFor="name">Name</Label>
               <Input
                 id="name"
-                placeholder="John Doe"
+                placeholder="Enter your name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
@@ -92,7 +92,7 @@ export default function SignupPage() {
               <Input
                 id="phone"
                 type="tel"
-                placeholder="9876543210"
+                placeholder=""
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
               />
