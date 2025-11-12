@@ -1,0 +1,179 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "iiitMailId": {
+          "type": "string",
+          "description": "The user's IIIT email address.",
+          "format": "email"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The user's phone number."
+        },
+        "uniqueCode": {
+          "type": "string",
+          "description": "A unique 5-digit code assigned to the user upon account creation."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "iiitMailId",
+        "phoneNumber",
+        "uniqueCode"
+      ]
+    },
+    "Caterer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Caterer",
+      "type": "object",
+      "description": "Represents a caterer in the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Caterer entity."
+        },
+        "username": {
+          "type": "string",
+          "description": "The caterer's username (e.g., 'admin')."
+        }
+      },
+      "required": [
+        "id",
+        "username"
+      ]
+    },
+    "Order": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Order",
+      "type": "object",
+      "description": "Represents an order made by a user to a caterer.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Order entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Order)"
+        },
+        "catererId": {
+          "type": "string",
+          "description": "Reference to Caterer. (Relationship: Caterer 1:N Order)"
+        },
+        "orderDate": {
+          "type": "string",
+          "description": "The date the order was placed.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the order"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "catererId",
+        "orderDate",
+        "description"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information, including name, IIIT mail ID, phone number, and unique code.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "caterers/{catererId}",
+        "definition": {
+          "entityName": "Caterer",
+          "schema": {
+            "$ref": "#/backend/entities/Caterer"
+          },
+          "description": "Stores caterer profile information, including username.",
+          "params": [
+            {
+              "name": "catererId",
+              "description": "The unique identifier for the caterer."
+            }
+          ]
+        }
+      },
+      {
+        "path": "users/{userId}/orders/{orderId}",
+        "definition": {
+          "entityName": "Order",
+          "schema": {
+            "$ref": "#/backend/entities/Order"
+          },
+          "description": "Stores order information associated with a specific user. Includes the userId and catererId, promoting Authorization Independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user who placed the order."
+            },
+            {
+              "name": "orderId",
+              "description": "The unique identifier for the order."
+            }
+          ]
+        }
+      },
+      {
+        "path": "caterers/{catererId}/orders/{orderId}",
+        "definition": {
+          "entityName": "Order",
+          "schema": {
+            "$ref": "#/backend/entities/Order"
+          },
+          "description": "Stores order information associated with a specific caterer. Includes the userId and catererId, promoting Authorization Independence.",
+          "params": [
+            {
+              "name": "catererId",
+              "description": "The unique identifier for the caterer to whom the order was placed."
+            },
+            {
+              "name": "orderId",
+              "description": "The unique identifier for the order."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and efficient data access, especially concerning user-caterer order relationships.  Authorization Independence is achieved by storing the user ID on the order document.  This eliminates the need for `get()` calls to verify user ownership during order creation. The `users/{userId}` and `caterers/{catererId}` paths are used for storing user and caterer profiles respectively, enabling easy retrieval of profile information.  The `users/{userId}/orders/{orderId}` collection stores orders associated with a specific user, maintaining a clear parent-child relationship for ownership. The `caterers/{catererId}/orders/{orderId}` collection allows caterers to efficiently manage their orders. This segregation ensures QAPs by allowing secure listing of orders either by user or by caterer without exposing data inappropriately."
+  }
+}

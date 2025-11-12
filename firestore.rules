@@ -1,0 +1,134 @@
+/**
+ * @fileoverview Firestore Security Rules for the application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a user-ownership model for user profiles and a dual-ownership model for orders (both user and caterer).
+ * Users can only read and write their own profile data. Orders are accessible and manageable both from the user's perspective and the caterer's perspective.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profile information.
+ * - /caterers/{catererId}: Stores caterer profile information.
+ * - /users/{userId}/orders/{orderId}: Stores orders placed by a specific user.
+ * - /caterers/{catererId}/orders/{orderId}: Stores orders associated with a specific caterer.
+ *
+ * Key Security Decisions:
+ * - Users can only create, update, or delete their own user documents.
+ * - Users can only list their own orders.
+ * - Caterers cannot list all users.
+ * - Orders are accessible by both the user who created them and the caterer to whom they were placed.
+ * - The schema is not strictly enforced during prototyping to allow flexibility, but authorization-critical fields are validated.
+ *
+ * Denormalization for Authorization:
+ * The `orders` subcollections under both `/users/{userId}` and `/caterers/{catererId}` duplicate order data. This allows security rules to authorize access based on the user or caterer context without requiring expensive `get()` calls to other parts of the database.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Allows users to manage their own profile information.
+     * @path /users/{userId}
+     * @allow (create) User with ID 'user_abc' can create their profile if request.auth.uid == 'user_abc'.
+     * @allow (get) User with ID 'user_abc' can read their profile.
+     * @allow (update) User with ID 'user_abc' can update their profile.
+     * @allow (delete) User with ID 'user_abc' can delete their profile.
+     * @deny (create) User with ID 'user_xyz' cannot create a profile with ID 'user_abc'.
+     * @principle Enforces document ownership for writes and reads.
+     */
+    match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Allows caterers to manage their own profile information.
+     * @path /caterers/{catererId}
+     * @allow (create) Caterer with ID 'caterer_abc' can create their profile if request.auth.uid == 'caterer_abc'.
+     * @allow (get) Caterer with ID 'caterer_abc' can read their profile.
+     * @allow (update) Caterer with ID 'caterer_abc' can update their profile.
+     * @allow (delete) Caterer with ID 'caterer_abc' can delete their profile.
+     * @deny (create) Caterer with ID 'caterer_xyz' cannot create a profile with ID 'caterer_abc'.
+     * @principle Enforces document ownership for writes and reads.
+     */
+    match /caterers/{catererId} {
+      function isOwner(catererId) {
+        return request.auth.uid == catererId;
+      }
+
+      function isExistingOwner(catererId) {
+        return isOwner(catererId) && resource != null;
+      }
+
+      allow get: if isOwner(catererId);
+      allow list: if false;
+      allow create: if isOwner(catererId) && request.resource.data.id == catererId;
+      allow update: if isExistingOwner(catererId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(catererId);
+    }
+
+    /**
+     * @description Allows users to manage their orders.
+     * @path /users/{userId}/orders/{orderId}
+     * @allow (create) User with ID 'user_abc' can create an order.
+     * @allow (get) User with ID 'user_abc' can read their order.
+     * @allow (list) User with ID 'user_abc' can list their orders.
+     * @allow (update) User with ID 'user_abc' can update their order.
+     * @allow (delete) User with ID 'user_abc' can delete their order.
+     * @deny (create) User with ID 'user_xyz' cannot create an order for user 'user_abc'.
+     * @principle Enforces document ownership for writes and reads.
+     */
+    match /users/{userId}/orders/{orderId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Allows caterers to manage orders placed with them.
+     * @path /caterers/{catererId}/orders/{orderId}
+     * @allow (create) Caterer with ID 'caterer_abc' can create an order.
+     * @allow (get) Caterer with ID 'caterer_abc' can read their order.
+     * @allow (list) Caterer with ID 'caterer_abc' can list their orders.
+     * @allow (update) Caterer with ID 'caterer_abc' can update their order.
+     * @allow (delete) Caterer with ID 'caterer_abc' can delete their order.
+     * @deny (create) Caterer with ID 'caterer_xyz' cannot create an order for caterer 'caterer_abc'.
+     * @principle Enforces document ownership for writes and reads.
+     */
+    match /caterers/{catererId}/orders/{orderId} {
+      function isOwner(catererId) {
+        return request.auth.uid == catererId;
+      }
+
+      function isExistingOwner(catererId) {
+        return isOwner(catererId) && resource != null;
+      }
+
+      allow get: if isOwner(catererId);
+      allow list: if isOwner(catererId);
+      allow create: if isOwner(catererId) && request.resource.data.catererId == catererId;
+      allow update: if isExistingOwner(catererId) && request.resource.data.catererId == resource.data.catererId;
+      allow delete: if isExistingOwner(catererId);
+    }
+  }
+}
