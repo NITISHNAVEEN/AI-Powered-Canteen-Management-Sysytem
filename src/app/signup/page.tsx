@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import { useAuth, useFirestore } from '@/firebase';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -36,6 +36,9 @@ export default function SignupPage() {
         password
       );
       const user = userCredential.user;
+      
+      await updateProfile(user, { displayName: name });
+
       const uniqueCode = generateUniqueCode();
 
       const userDocRef = doc(firestore, 'users', user.uid);
