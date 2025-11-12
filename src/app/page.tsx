@@ -1,5 +1,5 @@
 'use client';
-import { Clock, LogOut, User } from 'lucide-react';
+import { Clock, User } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -21,17 +21,13 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useAuth, useUser } from '@/firebase';
-import { signOut } from 'firebase/auth';
-import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/firebase';
 
 export default function Home() {
   const router = useRouter();
   const pathname = usePathname();
   const [isCaterer, setIsCaterer] = useState(false);
   const { user, isUserLoading } = useUser();
-  const auth = useAuth();
-  const { toast } = useToast();
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -39,14 +35,6 @@ export default function Home() {
     }
     setIsCaterer(pathname === '/caterer');
   }, [pathname, user, isUserLoading, router]);
-
-  const handleLogout = async () => {
-    if(auth){
-      await signOut(auth);
-      toast({ title: 'Logged out successfully' });
-      router.push('/login');
-    }
-  };
 
   const menuItems = [
     'Recommendations',
@@ -136,22 +124,19 @@ export default function Home() {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-           <div className="flex items-center justify-between p-2">
-              <div className="flex items-center gap-2">
-                <Avatar>
-                  <AvatarFallback>
-                    <User />
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold">{user.displayName || 'User Name'}</span>
-                  <span className="text-xs text-muted-foreground">{user.email}</span>
-                </div>
+          <Link href="/profile">
+            <div className="flex items-center gap-2 p-2 cursor-pointer hover:bg-sidebar-accent rounded-md">
+              <Avatar>
+                <AvatarFallback>
+                  <User />
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold">{user.displayName || 'User Name'}</span>
+                <span className="text-xs text-muted-foreground">{user.email}</span>
               </div>
-               <Button variant="ghost" size="icon" onClick={handleLogout}>
-                <LogOut className="w-4 h-4" />
-               </Button>
             </div>
+          </Link>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
