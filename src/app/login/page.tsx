@@ -2,11 +2,17 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  setPersistence,
+  browserSessionPersistence,
+  browserLocalPersistence,
+} from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
 import { useAuth } from '@/firebase';
@@ -15,6 +21,7 @@ export default function LoginPage() {
   const [isCaterer, setIsCaterer] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [keepLoggedIn, setKeepLoggedIn] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
@@ -22,31 +29,37 @@ export default function LoginPage() {
   const handleLogin = async () => {
     if (!auth) return;
 
-    if (isCaterer) {
-      if (email === 'admin' && password === 'password') {
-        // For prototyping, we'll use a known account for the caterer.
-        // In a real app, you'd have a separate secure login mechanism.
-        initiateEmailSignIn(auth, 'caterer.admin@app.com', 'password');
-        toast({ title: 'Caterer login successful' });
-        router.push('/caterer');
+    const persistence = keepLoggedIn
+      ? browserLocalPersistence
+      : browserSessionPersistence;
+
+    try {
+      await setPersistence(auth, persistence);
+
+      if (isCaterer) {
+        if (email === 'admin' && password === 'password') {
+          // For prototyping, we'll use a known account for the caterer.
+          // In a real app, you'd have a separate secure login mechanism.
+          initiateEmailSignIn(auth, 'caterer.admin@app.com', 'password');
+          toast({ title: 'Caterer login successful' });
+          router.push('/caterer');
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Invalid caterer credentials',
+          });
+        }
       } else {
-        toast({
-          variant: 'destructive',
-          title: 'Invalid caterer credentials',
-        });
-      }
-    } else {
-      try {
         initiateEmailSignIn(auth, email, password);
         toast({ title: 'Login successful' });
         router.push('/');
-      } catch (error: any) {
-        toast({
-          variant: 'destructive',
-          title: 'Login Failed',
-          description: error.message,
-        });
       }
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Login Failed',
+        description: error.message,
+      });
     }
   };
 
@@ -87,6 +100,14 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="keep-logged-in"
+                checked={keepLoggedIn}
+                onCheckedChange={(checked) => setKeepLoggedIn(checked as boolean)}
+              />
+              <Label htmlFor="keep-logged-in">Keep me logged in</Label>
             </div>
             <Button onClick={handleLogin} className="w-full">
               Login
