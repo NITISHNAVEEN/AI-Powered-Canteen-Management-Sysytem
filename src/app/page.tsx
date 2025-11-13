@@ -21,7 +21,18 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, getDocs, collectionGroup } from 'firebase/firestore';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+
+type MenuItem = {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  available: boolean;
+  catererId: string;
+};
 
 export default function Home() {
   const router = useRouter();
@@ -30,6 +41,27 @@ export default function Home() {
   const { user, isUserLoading } = useUser();
   const [isClient, setIsClient] = useState(false);
   const [currentTime, setCurrentTime] = useState('');
+  const firestore = useFirestore();
+
+  const menuItemsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collectionGroup(firestore, 'menuItems'));
+  }, [firestore]);
+
+  const { data: menuItemsData, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsQuery);
+
+  const foodItems = useMemoFirebase(() => {
+    if (!menuItemsData) return [];
+    return menuItemsData.map((item, index) => {
+        const placeholder = PlaceHolderImages[index % PlaceHolderImages.length];
+        return {
+            ...item,
+            image: placeholder?.imageUrl || "https://picsum.photos/seed/1/600/400",
+            imageHint: placeholder?.imageHint || "food"
+        }
+    });
+  }, [menuItemsData]);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -51,7 +83,7 @@ export default function Home() {
     setIsCaterer(pathname === '/caterer');
   }, [pathname, user, isUserLoading, router]);
 
-  const menuItems = [
+  const sidebarMenuItems = [
     'Recommendations',
     'Paratha',
     'Burger',
@@ -60,8 +92,6 @@ export default function Home() {
     'Quick Snacks',
     'Main Course',
   ];
-
-  const foodItems: any[] = [];
 
   const handleRoleChange = (checked: boolean) => {
     setIsCaterer(checked);
@@ -72,12 +102,17 @@ export default function Home() {
     }
   };
 
-  if (!isClient || isUserLoading || !user) {
+  if (!isClient || isUserLoading || isMenuLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         Loading...
       </div>
     );
+  }
+
+  if (!user) {
+      router.push('/login');
+      return null;
   }
 
   return (
@@ -92,7 +127,7 @@ export default function Home() {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            {menuItems.map((item, index) => (
+            {sidebarMenuItems.map((item) => (
               <SidebarMenuItem key={item}>
                 <SidebarMenuButton isActive={item === 'Recommendations'}>
                   {item}
@@ -156,7 +191,7 @@ export default function Home() {
           <div className="grid gap-4">
             {foodItems.length > 0 ? (
               foodItems.map((item) => (
-                <Card key={item.name}>
+                <Card key={item.id}>
                   <CardContent className="flex items-center gap-4 p-4">
                     <Image
                       src={item.image}
@@ -170,11 +205,11 @@ export default function Home() {
                       <div className="flex items-baseline gap-2">
                         <h3 className="text-lg font-bold">{item.name}</h3>
                         <span
-                          className={`text-sm ${
+                          className={`text-sm font-semibold ${
                             item.available ? 'text-green-600' : 'text-red-600'
                           }`}
                         >
-                          ({item.available ? 'Available' : 'Not Available'})
+                          ({item.available ? 'Available' : 'Unavailable'})
                         </span>
                       </div>
                       <p className="text-sm text-muted-foreground">
@@ -182,8 +217,8 @@ export default function Home() {
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <p className="font-semibold">₹{item.price}</p>
-                      <Button asChild>
+                      <p className="font-semibold">₹{item.price.toFixed(2)}</p>
+                      <Button asChild disabled={!item.available}>
                         <Link href="/order">Order</Link>
                       </Button>
                     </div>

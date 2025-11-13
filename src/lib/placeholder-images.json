@@ -1,3 +1,52 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "paratha",
+      "description": "A delicious paratha",
+      "imageUrl": "https://images.unsplash.com/photo-1683533761804-5fc12be0f684?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwYXJhdGhhJTIwZm9vZHxlbnwwfHx8fDE3NjMwMDY3NTN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "paratha food"
+    },
+    {
+      "id": "burger",
+      "description": "A juicy burger",
+      "imageUrl": "https://images.unsplash.com/photo-1685633224237-71b3a2022715?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxidXJnZXIlMjBmb29kfGVufDB8fHx8MTc2Mjk2NDc3Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "burger food"
+    },
+    {
+      "id": "rolls",
+      "description": "Tasty rolls",
+      "imageUrl": "https://images.unsplash.com/photo-1682151844402-1ac645c84299?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxyb2xscyUyMGZvb2R8ZW58MHx8fHwxNzYzMDA2NzUzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "rolls food"
+    },
+    {
+      "id": "biryani",
+      "description": "Flavorful biryani",
+      "imageUrl": "https://images.unsplash.com/photo-1747518596371-ab78bd612d09?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxiaXJ5YW5pJTIwZm9vZHxlbnwwfHx8fDE3NjI5NjU5ODJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "biryani food"
+    },
+    {
+      "id": "snacks",
+      "description": "Quick snacks",
+      "imageUrl": "https://images.unsplash.com/photo-1599629954294-14df9ec8bc05?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxzbmFja3MlMjBmb29kfGVufDB8fHx8MTc2MzAwNjc1M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "snacks food"
+    },
+    {
+      "id": "main-course",
+      "description": "A hearty main course",
+      "imageUrl": "https://images.unsplash.com/photo-1709458139191-8422914c7c78?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxtZWFsJTIwZm9vZHxlbnwwfHx8fDE3NjMwMDY3NTN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "meal food"
+    },
+    {
+      "id": "pizza",
+      "description": "A cheesy pizza",
+      "imageUrl": "https://images.unsplash.com/photo-1679598077423-4fd4849086e0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwaXp6YSUyMGZvb2R8ZW58MHx8fHwxNzYyOTQxNDA4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "pizza food"
+    },
+    {
+      "id": "noodles",
+      "description": "Savory noodles",
+      "imageUrl": "https://images.unsplash.com/photo-1559394452-087c19c260ac?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxub29kbGVzJTIwZm9vZHxlbnwwfHx8fDE3NjMwMDY3NTN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "noodles food"
+    }
+  ]
 }
