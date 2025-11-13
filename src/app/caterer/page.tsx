@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import {
@@ -36,6 +36,7 @@ import {
 import { collection, doc } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 type MenuItem = {
   id: string;
@@ -44,6 +45,8 @@ type MenuItem = {
   price: number;
   available: boolean;
 };
+
+type ImageSource = 'upload' | 'url' | 'none';
 
 export default function CatererPage() {
   const router = useRouter();
@@ -58,6 +61,10 @@ export default function CatererPage() {
   const [newItemDescription, setNewItemDescription] = useState('');
   const [newItemPrice, setNewItemPrice] = useState('');
   const [isAddOpen, setAddOpen] = useState(false);
+
+  const [imageSource, setImageSource] = useState<ImageSource>('none');
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
   
   // A hardcoded catererId for demonstration without auth
   const catererId = "demo-caterer";
@@ -100,6 +107,17 @@ export default function CatererPage() {
     }
   };
 
+  const resetAddForm = useCallback(() => {
+    setNewItemName('');
+    setNewItemDescription('');
+    setNewItemPrice('');
+    setImageSource('none');
+    setImageUrl('');
+    setImageFile(null);
+    setAddOpen(false);
+  }, []);
+
+
   const handleAddMenuItem = () => {
     if (!menuItemsRef) return;
     const price = parseFloat(newItemPrice);
@@ -112,20 +130,35 @@ export default function CatererPage() {
       return;
     }
 
-    const newItem = {
-      catererId: catererId,
-      name: newItemName,
-      description: newItemDescription,
-      price,
-      available: true,
-    };
-    addDocumentNonBlocking(menuItemsRef, newItem);
+    const saveItem = (finalImageUrl?: string) => {
+      const newItem: any = {
+        catererId: catererId,
+        name: newItemName,
+        description: newItemDescription,
+        price,
+        available: true,
+      };
 
-    toast({ title: 'Menu item added successfully!' });
-    setNewItemName('');
-    setNewItemDescription('');
-    setNewItemPrice('');
-    setAddOpen(false);
+      if (finalImageUrl) {
+        newItem.imageUrl = finalImageUrl;
+      }
+      
+      addDocumentNonBlocking(menuItemsRef, newItem);
+      toast({ title: 'Menu item added successfully!' });
+      resetAddForm();
+    };
+
+    if (imageSource === 'url') {
+      saveItem(imageUrl);
+    } else if (imageSource === 'upload' && imageFile) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        saveItem(reader.result as string);
+      };
+      reader.readAsDataURL(imageFile);
+    } else {
+      saveItem();
+    }
   };
 
   const handleAvailabilityChange = (itemId: string, available: boolean) => {
@@ -251,9 +284,52 @@ export default function CatererPage() {
                       placeholder="e.g., 50.00"
                     />
                   </div>
+                  <div className="grid grid-cols-4 items-start gap-4">
+                    <Label className="text-right pt-2">Photo</Label>
+                    <div className="col-span-3 space-y-4">
+                      <RadioGroup
+                        value={imageSource}
+                        onValueChange={(value: string) => setImageSource(value as ImageSource)}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="none" id="r-none" />
+                          <Label htmlFor="r-none">No Photo</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="upload" id="r-upload" />
+                          <Label htmlFor="r-upload">Upload from computer</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="url" id="r-url" />
+                          <Label htmlFor="r-url">Add image by URL</Label>
+                        </div>
+                      </RadioGroup>
+                      {imageSource === 'upload' && (
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => setImageFile(e.target.files ? e.target.files[0] : null)}
+                        />
+                      )}
+                      {imageSource === 'url' && (
+                        <Input
+                          type="text"
+                          placeholder="https://example.com/image.jpg"
+                          value={imageUrl}
+                          onChange={(e) => setImageUrl(e.target.value)}
+                        />
+                      )}
+                    </div>
+                  </div>
                 </div>
                 <DialogFooter>
-                  <DialogClose asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={resetAddForm}
+                    >
+                      Cancel
+                    </Button>
                     <Button
                       type="submit"
                       onClick={handleAddMenuItem}
@@ -263,7 +339,6 @@ export default function CatererPage() {
                     >
                       Save Item
                     </Button>
-                  </DialogClose>
                 </DialogFooter>
               </DialogContent>
             </Dialog>

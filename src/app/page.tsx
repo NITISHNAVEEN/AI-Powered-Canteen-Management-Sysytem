@@ -30,6 +30,7 @@ type MenuItem = {
   price: number;
   available: boolean;
   catererId: string;
+  imageUrl?: string;
 };
 
 export default function Home() {
@@ -51,9 +52,10 @@ export default function Home() {
     if (!menuItemsData) return [];
     return menuItemsData.map((item, index) => {
         const placeholder = PlaceHolderImages[index % PlaceHolderImages.length];
+        const imageSrc = item.imageUrl || placeholder?.imageUrl || "https://picsum.photos/seed/1/600/400";
         return {
             ...item,
-            image: placeholder?.imageUrl || "https://picsum.photos/seed/1/600/400",
+            image: imageSrc,
             imageHint: placeholder?.imageHint || "food"
         }
     });

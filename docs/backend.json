@@ -121,6 +121,10 @@
         "available": {
           "type": "boolean",
           "description": "Whether the menu item is currently available."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL or data URI of the menu item's image."
         }
       },
       "required": [
