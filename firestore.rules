@@ -1,3 +1,4 @@
+
 /**
  * @fileoverview Firestore Security Rules for the application.
  *
@@ -87,12 +88,8 @@ service cloud.firestore {
         function isMenuItemOwner(catererId) {
           return request.auth.uid == catererId;
         }
-        
-        function isExistingMenuItemOwner(catererId) {
-          return isMenuItemOwner(catererId) && exists(/databases/$(database)/documents/caterers/$(catererId)/menuItems/$(menuItemId));
-        }
 
-        allow list, get: if isMenuItemOwner(catererId);
+        allow list, get: if request.auth != null;
         allow create: if isMenuItemOwner(catererId) && request.resource.data.catererId == catererId;
         allow update: if isMenuItemOwner(catererId) && request.resource.data.catererId == catererId;
         allow delete: if isMenuItemOwner(catererId);
@@ -154,3 +151,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
