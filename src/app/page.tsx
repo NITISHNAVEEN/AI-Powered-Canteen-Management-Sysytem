@@ -61,43 +61,7 @@ export default function Home() {
     'Main Course',
   ];
 
-  const foodItems = [
-    {
-      name: 'Paratha',
-      description:
-        'The well cooked potato paratha with butter and groundnut chutney.',
-      price: 45,
-      available: true,
-      image: 'https://picsum.photos/seed/1/150/100',
-      imageHint: 'paratha food',
-    },
-    {
-      name: 'Classic Burger',
-      description:
-        'A juicy beef patty with fresh vegetables and our special sauce.',
-      price: 120,
-      available: true,
-      image: 'https://picsum.photos/seed/2/150/100',
-      imageHint: 'burger food',
-    },
-    {
-      name: 'Chicken Biryani',
-      description:
-        'Aromatic basmati rice cooked with succulent chicken pieces.',
-      price: 180,
-      available: false,
-      image: 'https://picsum.photos/seed/3/150/100',
-      imageHint: 'biryani food',
-    },
-    {
-      name: 'Veggie Rolls',
-      description: 'Crispy rolls filled with fresh vegetables and spices.',
-      price: 60,
-      available: true,
-      image: 'https://picsum.photos/seed/4/150/100',
-      imageHint: 'rolls food',
-    },
-  ];
+  const foodItems: any[] = [];
 
   const handleRoleChange = (checked: boolean) => {
     setIsCaterer(checked);
@@ -190,41 +154,49 @@ export default function Home() {
 
         <main className="flex-1 p-4 overflow-y-auto">
           <div className="grid gap-4">
-            {foodItems.map((item) => (
-              <Card key={item.name}>
-                <CardContent className="flex items-center gap-4 p-4">
-                  <Image
-                    src={item.image}
-                    alt={item.name}
-                    width={96}
-                    height={96}
-                    className="object-cover w-24 h-24 rounded-md"
-                    data-ai-hint={item.imageHint}
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-baseline gap-2">
-                      <h3 className="text-lg font-bold">{item.name}</h3>
-                      <span
-                        className={`text-sm ${
-                          item.available ? 'text-green-600' : 'text-red-600'
-                        }`}
-                      >
-                        ({item.available ? 'Available' : 'Not Available'})
-                      </span>
+            {foodItems.length > 0 ? (
+              foodItems.map((item) => (
+                <Card key={item.name}>
+                  <CardContent className="flex items-center gap-4 p-4">
+                    <Image
+                      src={item.image}
+                      alt={item.name}
+                      width={96}
+                      height={96}
+                      className="object-cover w-24 h-24 rounded-md"
+                      data-ai-hint={item.imageHint}
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-baseline gap-2">
+                        <h3 className="text-lg font-bold">{item.name}</h3>
+                        <span
+                          className={`text-sm ${
+                            item.available ? 'text-green-600' : 'text-red-600'
+                          }`}
+                        >
+                          ({item.available ? 'Available' : 'Not Available'})
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {item.description}
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {item.description}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <p className="font-semibold">₹{item.price}</p>
-                    <Button asChild>
-                      <Link href="/order">Order</Link>
-                    </Button>
-                  </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <p className="font-semibold">₹{item.price}</p>
+                      <Button asChild>
+                        <Link href="/order">Order</Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <Card>
+                <CardContent className="p-4 text-center">
+                  No food items available at the moment.
                 </CardContent>
               </Card>
-            ))}
+            )}
           </div>
         </main>
 
