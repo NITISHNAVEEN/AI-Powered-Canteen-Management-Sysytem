@@ -91,6 +91,46 @@
         "orderDate",
         "description"
       ]
+    },
+    "MenuItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MenuItem",
+      "type": "object",
+      "description": "Represents a menu item offered by a caterer.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the MenuItem entity."
+        },
+        "catererId": {
+          "type": "string",
+          "description": "The ID of the caterer who owns this menu item."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the menu item."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the menu item."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the menu item."
+        },
+        "available": {
+          "type": "boolean",
+          "description": "Whether the menu item is currently available."
+        }
+      },
+      "required": [
+        "id",
+        "catererId",
+        "name",
+        "description",
+        "price",
+        "available"
+      ]
     }
   },
   "auth": {
@@ -129,6 +169,26 @@
             {
               "name": "catererId",
               "description": "The unique identifier for the caterer."
+            }
+          ]
+        }
+      },
+      {
+        "path": "caterers/{catererId}/menuItems/{menuItemId}",
+        "definition": {
+          "entityName": "MenuItem",
+          "schema": {
+            "$ref": "#/backend/entities/MenuItem"
+          },
+          "description": "Stores menu items for a specific caterer.",
+          "params": [
+            {
+              "name": "catererId",
+              "description": "The unique identifier for the caterer."
+            },
+            {
+              "name": "menuItemId",
+              "description": "The unique identifier for the menu item."
             }
           ]
         }

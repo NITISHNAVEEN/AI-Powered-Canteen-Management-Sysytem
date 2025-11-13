@@ -8,11 +8,13 @@
  * Data Structure:
  * - /users/{userId}: Stores user profile information.
  * - /caterers/{catererId}: Stores caterer profile information.
+ * - /caterers/{catererId}/menuItems/{menuItemId}: Stores menu items for a caterer.
  * - /users/{userId}/orders/{orderId}: Stores orders placed by a specific user.
  * - /caterers/{catererId}/orders/{orderId}: Stores orders associated with a specific caterer.
  *
  * Key Security Decisions:
  * - Users can only create, update, or delete their own user documents.
+ * - Caterers can manage their own profile and menu items.
  * - Users can only list their own orders.
  * - Caterers cannot list all users.
  * - Orders are accessible by both the user who created them and the caterer to whom they were placed.
@@ -75,6 +77,26 @@ service cloud.firestore {
       allow create: if isOwner(catererId) && request.resource.data.id == catererId;
       allow update: if isExistingOwner(catererId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(catererId);
+
+      /**
+       * @description Allows caterers to manage their own menu items.
+       * @path /caterers/{catererId}/menuItems/{menuItemId}
+       * @principle Enforces document ownership for writes and reads on a subcollection.
+       */
+      match /menuItems/{menuItemId} {
+        function isMenuItemOwner(catererId) {
+          return request.auth.uid == catererId;
+        }
+        
+        function isExistingMenuItemOwner(catererId) {
+          return isMenuItemOwner(catererId) && exists(/databases/$(database)/documents/caterers/$(catererId)/menuItems/$(menuItemId));
+        }
+
+        allow list, get: if isMenuItemOwner(catererId);
+        allow create: if isMenuItemOwner(catererId) && request.resource.data.catererId == catererId;
+        allow update: if isMenuItemOwner(catererId) && request.resource.data.catererId == catererId;
+        allow delete: if isMenuItemOwner(catererId);
+      }
     }
 
     /**
