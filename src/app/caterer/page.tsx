@@ -1,9 +1,8 @@
 'use client';
-import { Clock, User, PlusCircle } from 'lucide-react';
+import { Clock, PlusCircle } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -18,8 +17,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import {
   Dialog,
   DialogContent,
@@ -51,7 +49,6 @@ export default function CatererPage() {
   const router = useRouter();
   const pathname = usePathname();
   const [isCaterer, setIsCaterer] = useState(true);
-  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const [isClient, setIsClient] = useState(false);
   const [currentTime, setCurrentTime] = useState('');
@@ -61,11 +58,14 @@ export default function CatererPage() {
   const [newItemDescription, setNewItemDescription] = useState('');
   const [newItemPrice, setNewItemPrice] = useState('');
   const [isAddOpen, setAddOpen] = useState(false);
+  
+  // A hardcoded catererId for demonstration without auth
+  const catererId = "demo-caterer";
 
   const menuItemsRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return collection(firestore, 'caterers', user.uid, 'menuItems');
-  }, [firestore, user]);
+    if (!firestore) return null;
+    return collection(firestore, 'caterers', catererId, 'menuItems');
+  }, [firestore]);
 
   const {
     data: menuItems,
@@ -86,11 +86,8 @@ export default function CatererPage() {
   }, []);
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/login');
-    }
     setIsCaterer(pathname === '/caterer');
-  }, [pathname, user, isUserLoading, router]);
+  }, [pathname]);
 
   const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Settings'];
 
@@ -104,7 +101,7 @@ export default function CatererPage() {
   };
 
   const handleAddMenuItem = () => {
-    if (!user || !menuItemsRef) return;
+    if (!menuItemsRef) return;
     const price = parseFloat(newItemPrice);
     if (isNaN(price)) {
       toast({
@@ -116,7 +113,7 @@ export default function CatererPage() {
     }
 
     const newItem = {
-      catererId: user.uid,
+      catererId: catererId,
       name: newItemName,
       description: newItemDescription,
       price,
@@ -132,22 +129,17 @@ export default function CatererPage() {
   };
 
   const handleAvailabilityChange = (itemId: string, available: boolean) => {
-    if (!user || !firestore) return;
-    const itemDocRef = doc(firestore, 'caterers', user.uid, 'menuItems', itemId);
+    if (!firestore) return;
+    const itemDocRef = doc(firestore, 'caterers', catererId, 'menuItems', itemId);
     updateDocumentNonBlocking(itemDocRef, { available });
   };
 
-  if (!isClient || isUserLoading || isMenuLoading) {
+  if (!isClient || isMenuLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         Loading...
       </div>
     );
-  }
-
-  if (!user) {
-    router.push('/login');
-    return null;
   }
 
   return (
@@ -171,23 +163,6 @@ export default function CatererPage() {
             ))}
           </SidebarMenu>
         </SidebarContent>
-        <SidebarFooter>
-          <Link href="/profile">
-            <div className="flex items-center gap-2 p-2 cursor-pointer hover:bg-sidebar-accent rounded-md">
-              <Avatar>
-                <AvatarFallback>
-                  <User />
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold">Caterer Name</span>
-                <span className="text-xs text-muted-foreground">
-                  {user.email}
-                </span>
-              </div>
-            </div>
-          </Link>
-        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <header className="flex items-center justify-between p-4 border-b">

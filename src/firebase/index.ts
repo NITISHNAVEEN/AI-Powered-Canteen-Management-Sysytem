@@ -2,28 +2,39 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, signInAnonymously } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore'
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
     if (typeof window !== 'undefined') {
+        let firebaseApp;
         if (!getApps().length) {
-            let firebaseApp;
             try {
-              firebaseApp = initializeApp();
+              firebaseApp = initializeApp(firebaseConfig);
             } catch (e) {
               if (process.env.NODE_ENV === "production") {
                 console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
               }
               firebaseApp = initializeApp(firebaseConfig);
             }
-            return getSdks(firebaseApp);
+        } else {
+          firebaseApp = getApp();
         }
-        return getSdks(getApp());
+
+        const auth = getAuth(firebaseApp);
+        // Automatically sign in users anonymously if not already signed in.
+        if (!auth.currentUser) {
+            signInAnonymously(auth).catch((error) => {
+                console.error("Anonymous sign-in failed:", error);
+            });
+        }
+        
+        return getSdks(firebaseApp);
     }
     return getSdks(null);
 }
+
 
 export function getSdks(firebaseApp: FirebaseApp | null) {
   const auth = firebaseApp ? getAuth(firebaseApp) : null;

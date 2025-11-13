@@ -1,9 +1,8 @@
 'use client';
-import { Clock, User } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -18,11 +17,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, getDocs, collectionGroup } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collectionGroup, query } from 'firebase/firestore';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 type MenuItem = {
@@ -38,7 +36,6 @@ export default function Home() {
   const router = useRouter();
   const pathname = usePathname();
   const [isCaterer, setIsCaterer] = useState(false);
-  const { user, isUserLoading } = useUser();
   const [isClient, setIsClient] = useState(false);
   const [currentTime, setCurrentTime] = useState('');
   const firestore = useFirestore();
@@ -50,7 +47,7 @@ export default function Home() {
 
   const { data: menuItemsData, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsQuery);
 
-  const foodItems = useMemoFirebase(() => {
+  const foodItems = useMemo(() => {
     if (!menuItemsData) return [];
     return menuItemsData.map((item, index) => {
         const placeholder = PlaceHolderImages[index % PlaceHolderImages.length];
@@ -77,11 +74,8 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/login');
-    }
     setIsCaterer(pathname === '/caterer');
-  }, [pathname, user, isUserLoading, router]);
+  }, [pathname]);
 
   const sidebarMenuItems = [
     'Recommendations',
@@ -102,17 +96,12 @@ export default function Home() {
     }
   };
 
-  if (!isClient || isUserLoading || isMenuLoading) {
+  if (!isClient || isMenuLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         Loading...
       </div>
     );
-  }
-
-  if (!user) {
-      router.push('/login');
-      return null;
   }
 
   return (
@@ -136,21 +125,6 @@ export default function Home() {
             ))}
           </SidebarMenu>
         </SidebarContent>
-        <SidebarFooter>
-          <Link href="/profile">
-            <div className="flex items-center gap-2 p-2 cursor-pointer hover:bg-sidebar-accent rounded-md">
-              <Avatar>
-                <AvatarFallback>
-                  <User />
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold">{user.displayName || 'User Name'}</span>
-                <span className="text-xs text-muted-foreground">{user.email}</span>
-              </div>
-            </div>
-          </Link>
-        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <header className="flex items-center justify-between p-4 border-b">
