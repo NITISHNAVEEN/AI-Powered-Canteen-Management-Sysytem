@@ -1,5 +1,5 @@
 'use client';
-import { Clock, PlusCircle } from 'lucide-react';
+import { Clock, PlusCircle, Trash2 } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -25,13 +25,24 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
+  deleteDocumentNonBlocking,
 } from '@/firebase/non-blocking-updates';
 import { collection, doc } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
@@ -65,19 +76,17 @@ export default function CatererPage() {
   const [imageSource, setImageSource] = useState<ImageSource>('none');
   const [imageUrl, setImageUrl] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
-  
+
   // A hardcoded catererId for demonstration without auth
-  const catererId = "demo-caterer";
+  const catererId = 'demo-caterer';
 
   const menuItemsRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'caterers', catererId, 'menuItems');
   }, [firestore]);
 
-  const {
-    data: menuItems,
-    isLoading: isMenuLoading,
-  } = useCollection<MenuItem>(menuItemsRef);
+  const { data: menuItems, isLoading: isMenuLoading } =
+    useCollection<MenuItem>(menuItemsRef);
 
   useEffect(() => {
     setIsClient(true);
@@ -117,7 +126,6 @@ export default function CatererPage() {
     setAddOpen(false);
   }, []);
 
-
   const handleAddMenuItem = () => {
     if (!menuItemsRef) return;
     const price = parseFloat(newItemPrice);
@@ -142,7 +150,7 @@ export default function CatererPage() {
       if (finalImageUrl) {
         newItem.imageUrl = finalImageUrl;
       }
-      
+
       addDocumentNonBlocking(menuItemsRef, newItem);
       toast({ title: 'Menu item added successfully!' });
       resetAddForm();
@@ -163,8 +171,27 @@ export default function CatererPage() {
 
   const handleAvailabilityChange = (itemId: string, available: boolean) => {
     if (!firestore) return;
-    const itemDocRef = doc(firestore, 'caterers', catererId, 'menuItems', itemId);
+    const itemDocRef = doc(
+      firestore,
+      'caterers',
+      catererId,
+      'menuItems',
+      itemId
+    );
     updateDocumentNonBlocking(itemDocRef, { available });
+  };
+
+  const handleDeleteMenuItem = (itemId: string) => {
+    if (!firestore) return;
+    const itemDocRef = doc(
+      firestore,
+      'caterers',
+      catererId,
+      'menuItems',
+      itemId
+    );
+    deleteDocumentNonBlocking(itemDocRef);
+    toast({ title: 'Menu item removed.' });
   };
 
   if (!isClient || isMenuLoading) {
@@ -289,7 +316,9 @@ export default function CatererPage() {
                     <div className="col-span-3 space-y-4">
                       <RadioGroup
                         value={imageSource}
-                        onValueChange={(value: string) => setImageSource(value as ImageSource)}
+                        onValueChange={(value: string) =>
+                          setImageSource(value as ImageSource)
+                        }
                       >
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="none" id="r-none" />
@@ -308,7 +337,11 @@ export default function CatererPage() {
                         <Input
                           type="file"
                           accept="image/*"
-                          onChange={(e) => setImageFile(e.target.files ? e.target.files[0] : null)}
+                          onChange={(e) =>
+                            setImageFile(
+                              e.target.files ? e.target.files[0] : null
+                            )
+                          }
                         />
                       )}
                       {imageSource === 'url' && (
@@ -323,22 +356,22 @@ export default function CatererPage() {
                   </div>
                 </div>
                 <DialogFooter>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={resetAddForm}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      onClick={handleAddMenuItem}
-                      disabled={
-                        !newItemName || !newItemDescription || !newItemPrice
-                      }
-                    >
-                      Save Item
-                    </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={resetAddForm}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    onClick={handleAddMenuItem}
+                    disabled={
+                      !newItemName || !newItemDescription || !newItemPrice
+                    }
+                  >
+                    Save Item
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -373,6 +406,29 @@ export default function CatererPage() {
                         />
                       </div>
                     </div>
+                     <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="icon">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently remove the item from your menu.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteMenuItem(item.id)}
+                          >
+                            Remove
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </CardContent>
                 </Card>
               ))
