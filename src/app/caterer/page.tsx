@@ -1,5 +1,5 @@
 'use client';
-import { Clock, PlusCircle, Trash2 } from 'lucide-react';
+import { Clock, PlusCircle, Trash2, Check, ChevronsUpDown } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -48,13 +48,18 @@ import { collection, doc } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+  CommandDialog,
+} from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 
 type MenuItem = {
   id: string;
@@ -65,6 +70,21 @@ type MenuItem = {
 };
 
 type ImageSource = 'upload' | 'url' | 'none';
+
+const sidebarMenuItems = [
+  'Recommendations',
+  'Paratha',
+  'Burger',
+  'Rolls',
+  'Biryani',
+  'Quick Snacks',
+  'Main Course',
+];
+
+const categories = sidebarMenuItems.map((item) => ({
+  value: item.toLowerCase(),
+  label: item,
+}));
 
 export default function CatererPage() {
   const router = useRouter();
@@ -83,6 +103,9 @@ export default function CatererPage() {
   const [imageSource, setImageSource] = useState<ImageSource>('none');
   const [imageUrl, setImageUrl] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
+
+  const [openCategoryPopover, setOpenCategoryPopover] = useState(false);
+  const [newCategory, setNewCategory] = useState('');
 
   // A hardcoded catererId for demonstration without auth
   const catererId = 'demo-caterer';
@@ -141,7 +164,7 @@ export default function CatererPage() {
       toast({
         variant: 'destructive',
         title: 'Category required',
-        description: 'Please select a category for the menu item.',
+        description: 'Please select or create a category for the menu item.',
       });
       return;
     }
@@ -201,6 +224,18 @@ export default function CatererPage() {
     );
     deleteDocumentNonBlocking(itemDocRef);
     toast({ title: 'Menu item removed.' });
+  };
+  
+  const handleCreateCategory = () => {
+    if (newCategory) {
+      const newCategoryValue = newCategory.toLowerCase();
+      if (!categories.find(c => c.value === newCategoryValue)) {
+        categories.push({ value: newCategoryValue, label: newCategory });
+      }
+      setNewItemCategory(newCategoryValue);
+      setOpenCategoryPopover(false);
+      setNewCategory('');
+    }
   };
 
   if (isMenuLoading) {
@@ -324,20 +359,74 @@ export default function CatererPage() {
                     <Label htmlFor="category" className="text-right">
                       Category
                     </Label>
-                    <Select
-                      onValueChange={setNewItemCategory}
-                      value={newItemCategory}
+                    <Popover
+                      open={openCategoryPopover}
+                      onOpenChange={setOpenCategoryPopover}
                     >
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="breakfast">Breakfast</SelectItem>
-                        <SelectItem value="lunch">Lunch</SelectItem>
-                        <SelectItem value="snacks">Snacks</SelectItem>
-                        <SelectItem value="dinner">Dinner</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openCategoryPopover}
+                          className="col-span-3 justify-between"
+                        >
+                          {newItemCategory
+                            ? categories.find(
+                                (category) => category.value === newItemCategory
+                              )?.label
+                            : 'Select category...'}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search or create..." />
+                          <CommandList>
+                            <CommandEmpty>
+                              <div className="p-2">
+                                <p className="mb-2 text-sm text-muted-foreground">No category found.</p>
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    const input = document.querySelector<HTMLInputElement>('input[aria-controls="radix-R...-listbox"]');
+                                    if(input) {
+                                      setNewItemCategory(input.value.toLowerCase());
+                                      setOpenCategoryPopover(false);
+                                    }
+                                  }}
+                                >
+                                  Create new category
+                                </Button>
+                              </div>
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {categories.map((category) => (
+                                <CommandItem
+                                  key={category.value}
+                                  value={category.value}
+                                  onSelect={(currentValue) => {
+                                    setNewItemCategory(
+                                      currentValue === newItemCategory ? '' : currentValue
+                                    );
+                                    setOpenCategoryPopover(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      'mr-2 h-4 w-4',
+                                      newItemCategory === category.value
+                                        ? 'opacity-100'
+                                        : 'opacity-0'
+                                    )}
+                                  />
+                                  {category.label}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <div className="grid grid-cols-4 items-start gap-4">
                     <Label className="text-right pt-2">Photo</Label>
