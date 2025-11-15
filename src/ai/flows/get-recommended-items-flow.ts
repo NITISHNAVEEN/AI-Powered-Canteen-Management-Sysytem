@@ -29,9 +29,8 @@ const RecommendedItemsOutputSchema = z.object({
     recommendationReason: z.string().describe("A short, friendly reason for why these items were recommended, considering the time of day."),
     recommendedItemIds: z
         .array(z.string())
-        .min(3)
-        .max(5)
-        .describe('An array of 3 to 5 recommended menu item IDs.'),
+        .length(3)
+        .describe('An array of exactly 3 recommended menu item IDs.'),
 });
 export type RecommendedItemsOutput = z.infer<typeof RecommendedItemsOutputSchema>;
 
@@ -46,7 +45,7 @@ const prompt = ai.definePrompt({
   input: { schema: RecommendedItemsInputSchema },
   output: { schema: RecommendedItemsOutputSchema },
   prompt: `You are an expert food recommendation engine for a college canteen.
-Your task is to recommend 3 to 5 items from the available menu based on the current time of day.
+Your task is to recommend exactly 3 items from the available menu based on the current time of day.
 
 Current Time: {{{currentTime}}}
 
@@ -62,7 +61,7 @@ Instructions:
     -   Evening (4pm-7pm): Suggest snacks.
     -   Night (8pm onwards): Suggest dinner items.
 2.  Review the list of available menu items and their descriptions.
-3.  Select 3 to 5 items that are most appropriate for the current time.
+3.  Select exactly 3 items that are most appropriate for the current time.
 4.  Provide a short, friendly, single-sentence reason for your recommendations. For example: "It's lunchtime! Here are some hearty options to power you through the afternoon." or "Feeling peckish? Here are some great evening snacks."
 5.  Return the IDs of the recommended items in the 'recommendedItemIds' array.
 `,
