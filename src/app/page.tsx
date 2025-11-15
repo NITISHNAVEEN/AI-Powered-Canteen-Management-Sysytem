@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 type MenuItem = {
@@ -34,6 +34,12 @@ type MenuItem = {
   category: string;
 };
 
+type Category = {
+    id: string;
+    value: string;
+    label: string;
+}
+
 type CategorizedItem = MenuItem & { image: string; imageHint: string };
 
 type GroupedItems = {
@@ -46,7 +52,7 @@ type GroupedItems = {
 export default function Home() {
   const router = useRouter();
   const pathname = usePathname();
-  const isCaterer = pathname === '/caterer';
+  const isCaterer = pathname.startsWith('/caterer');
   const [currentTime, setCurrentTime] = useState('');
   const firestore = useFirestore();
   const [activeCategory, setActiveCategory] = useState<string>('');
@@ -55,53 +61,59 @@ export default function Home() {
   // Hardcoded catererId for demonstration
   const catererId = 'demo-caterer';
 
-  const menuItemsRef = useMemoFirebase(() => {
+  const menuItemsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'caterers', catererId, 'menuItems');
+    // Query for available menu items from the specific caterer
+    return query(
+        collection(firestore, 'caterers', catererId, 'menuItems'),
+        where('available', '==', true)
+    );
   }, [firestore, catererId]);
 
-  const { data: menuItemsData, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsRef);
+  const { data: menuItemsData, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsQuery);
+
+  const categoriesRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'caterers', catererId, 'categories');
+  }, [firestore, catererId]);
+  const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesRef);
+
 
   const groupedItems = useMemo((): GroupedItems => {
-    if (!menuItemsData) {
+    if (!menuItemsData || !categories) {
       return {};
     }
 
-    const filteredItems = menuItemsData.filter(item => item.category);
-
     const result: GroupedItems = {};
 
-    const uniqueCategories = [...new Set(filteredItems.map(item => item.category))];
+    categories.forEach(category => {
+        result[category.value] = {
+            label: category.label,
+            items: menuItemsData
+                .filter(item => item.category === category.value)
+                .map(item => {
+                    const placeholder =
+                    PlaceHolderImages.find(p => p.id === item.category) ||
+                    PlaceHolderImages[0];
+                    const imageSrc = item.imageUrl || placeholder.imageUrl || 'https://picsum.photos/seed/1/600/400';
 
-    uniqueCategories.forEach(categoryKey => {
-      const categoryLabel = categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1).replace(/-/g, ' ');
-      result[categoryKey] = {
-        label: categoryLabel,
-        items: filteredItems
-          .filter(item => item.category === categoryKey)
-          .map(item => {
-            const placeholder =
-              PlaceHolderImages.find(p => p.id === item.category) ||
-              PlaceHolderImages[0];
-            const imageSrc = item.imageUrl || placeholder.imageUrl || 'https://picsum.photos/seed/1/600/400';
-
-            return {
-              ...item,
-              image: imageSrc,
-              imageHint: placeholder?.imageHint || 'food',
-            };
-          }),
-      };
+                    return {
+                    ...item,
+                    image: imageSrc,
+                    imageHint: placeholder?.imageHint || 'food',
+                    };
+                }),
+        }
     });
 
     return result;
-  }, [menuItemsData]);
+  }, [menuItemsData, categories]);
 
   useEffect(() => {
-     if (Object.keys(groupedItems).length > 0 && !activeCategory) {
-        setActiveCategory(Object.keys(groupedItems)[0]);
+     if (categories && categories.length > 0 && !activeCategory) {
+        setActiveCategory(categories[0].value);
      }
-  }, [groupedItems, activeCategory]);
+  }, [categories, activeCategory]);
 
 
   useEffect(() => {
@@ -122,14 +134,10 @@ export default function Home() {
   };
 
   const handleRoleChange = (checked: boolean) => {
-    if (checked) {
-      router.push('/caterer');
-    } else {
-      router.push('/');
-    }
+    router.push(checked ? '/caterer' : '/');
   };
   
-  if (isMenuLoading) {
+  if (isMenuLoading || areCategoriesLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         Loading menu...
@@ -137,11 +145,6 @@ export default function Home() {
     );
   }
   
-  const categories = Object.keys(groupedItems).map(key => ({
-      value: key,
-      label: groupedItems[key].label
-  }));
-
   return (
     <SidebarProvider>
       <Sidebar side="left">
@@ -154,7 +157,7 @@ export default function Home() {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            {categories.map((cat) => (
+            {categories?.map((cat) => (
               <SidebarMenuItem key={cat.value}>
                 <SidebarMenuButton 
                     isActive={activeCategory === cat.value}
@@ -203,48 +206,43 @@ export default function Home() {
         </header>
 
         <main className="flex-1 p-4 overflow-y-auto">
-           {Object.keys(groupedItems).length > 0 ? (
-            Object.entries(groupedItems).map(([categoryKey, categoryData]) => (
-              <div key={categoryKey} ref={el => sectionRefs.current[categoryKey] = el} className="mb-8">
-                <h2 className="text-2xl font-bold mb-4">{categoryData.label}</h2>
-                <div className="grid gap-4">
-                  {categoryData.items.map((item) => (
-                    <Card key={item.id} className={!item.available ? 'blur-sm pointer-events-none' : ''}>
-                      <CardContent className="flex items-center gap-4 p-4">
-                        <Image
-                          src={item.image}
-                          alt={item.name}
-                          width={96}
-                          height={96}
-                          className="object-cover w-24 h-24 rounded-md"
-                          data-ai-hint={item.imageHint}
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-baseline gap-2">
-                            <h3 className="text-lg font-bold">{item.name}</h3>
-                             <span
-                                className={`text-sm font-semibold ${
-                                  item.available ? 'text-green-600' : 'text-red-600'
-                                }`}
-                              >
-                                ({item.available ? 'Available' : 'Unavailable'})
-                              </span>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {item.description}
-                          </p>
+           {categories && categories.length > 0 ? (
+            categories.map(category => (
+                groupedItems[category.value] && groupedItems[category.value].items.length > 0 && (
+                    <div key={category.value} ref={el => sectionRefs.current[category.value] = el} className="mb-8">
+                        <h2 className="text-2xl font-bold mb-4">{category.label}</h2>
+                        <div className="grid gap-4">
+                        {groupedItems[category.value].items.map((item) => (
+                            <Card key={item.id} className={!item.available ? 'opacity-50 pointer-events-none' : ''}>
+                            <CardContent className="flex items-center gap-4 p-4">
+                                <Image
+                                src={item.image}
+                                alt={item.name}
+                                width={96}
+                                height={96}
+                                className="object-cover w-24 h-24 rounded-md"
+                                data-ai-hint={item.imageHint}
+                                />
+                                <div className="flex-1">
+                                <div className="flex items-baseline gap-2">
+                                    <h3 className="text-lg font-bold">{item.name}</h3>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                    {item.description}
+                                </p>
+                                </div>
+                                <div className="flex flex-col items-end gap-2">
+                                <p className="font-semibold">₹{item.price.toFixed(2)}</p>
+                                <Button disabled={!item.available}>
+                                    Add
+                                </Button>
+                                </div>
+                            </CardContent>
+                            </Card>
+                        ))}
                         </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <p className="font-semibold">₹{item.price.toFixed(2)}</p>
-                          <Button disabled={!item.available}>
-                            Add
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
+                    </div>
+                )
             ))
           ) : (
             <Card>

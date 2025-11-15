@@ -70,31 +70,34 @@ type MenuItem = {
   imageUrl?: string;
 };
 
+type Category = {
+    id: string;
+    value: string;
+    label: string;
+}
+
 type ImageSource = 'upload' | 'url' | 'none';
 
 type GroupedMenuItems = {
   [category: string]: MenuItem[];
 };
 
-const defaultCategories = [
-    { value: 'recommendations', label: 'Recommendations' },
-    { value: 'paratha', label: 'Paratha' },
-    { value: 'burger', label: 'Burger' },
-    { value: 'rolls', label: 'Rolls' },
-    { value: 'biryani', label: 'Biryani' },
-    { value: 'quick-snacks', label: 'Quick Snacks' },
-    { value: 'main-course', label: 'Main Course' },
-];
-
-
 export default function CatererPage() {
   const router = useRouter();
   const pathname = usePathname();
-  const isCaterer = pathname === '/caterer';
+  const isCaterer = pathname.startsWith('/caterer');
   const firestore = useFirestore();
   const [currentTime, setCurrentTime] = useState('');
   const { toast } = useToast();
-  const [categories, setCategories] = useState(defaultCategories);
+  
+  // A hardcoded catererId for demonstration without auth
+  const catererId = 'demo-caterer';
+
+  const categoriesRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'caterers', catererId, 'categories');
+  }, [firestore]);
+  const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesRef);
 
   // Add Item State
   const [isAddOpen, setAddOpen] = useState(false);
@@ -118,9 +121,6 @@ export default function CatererPage() {
   const [editImageUrl, setEditImageUrl] = useState('');
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editOpenCategoryPopover, setEditOpenCategoryPopover] = useState(false);
-  
-  // A hardcoded catererId for demonstration without auth
-  const catererId = 'demo-caterer';
 
   const menuItemsRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -143,24 +143,6 @@ export default function CatererPage() {
   }, [menuItems]);
 
   useEffect(() => {
-    if (menuItems) {
-      const uniqueCategories = [
-        ...new Set(menuItems.map(item => item.category).filter(Boolean)),
-      ];
-      const newCategories = uniqueCategories.map(c => ({
-        value: c,
-        label: c.charAt(0).toUpperCase() + c.slice(1).replace(/-/g, ' '),
-      }));
-
-      // Combine with default and remove duplicates
-      const allCategories = [...defaultCategories, ...newCategories];
-      const categoryMap = new Map(allCategories.map(c => [c.value, c]));
-      setCategories(Array.from(categoryMap.values()));
-    }
-  }, [menuItems]);
-
-
-  useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(
         new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })
@@ -169,14 +151,10 @@ export default function CatererPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Settings'];
+  const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Categories', 'Settings'];
 
   const handleRoleChange = (checked: boolean) => {
-    if (checked) {
-      router.push('/caterer');
-    } else {
-      router.push('/');
-    }
+    router.push(checked ? '/caterer' : '/');
   };
 
   const resetAddFormState = useCallback(() => {
@@ -218,7 +196,7 @@ export default function CatererPage() {
       toast({
         variant: 'destructive',
         title: 'Category required',
-        description: 'Please select or create a category for the menu item.',
+        description: 'Please select a category for the menu item.',
       });
       return;
     }
@@ -269,7 +247,7 @@ export default function CatererPage() {
       toast({
         variant: 'destructive',
         title: 'Category required',
-        description: 'Please select or create a category for the menu item.',
+        description: 'Please select a category for the menu item.',
       });
       return;
     }
@@ -346,7 +324,7 @@ export default function CatererPage() {
   };
   
   const findCategoryLabel = (value: string) => {
-    const category = categories.find(c => c.value === value);
+    const category = categories?.find(c => c.value === value);
     return category ? category.label : value;
   }
 
@@ -411,36 +389,12 @@ export default function CatererPage() {
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-[300px] p-0">
-            <Command
-              filter={(value, search) => {
-                const label = findCategoryLabel(value);
-                if (label.toLowerCase().includes(search.toLowerCase())) return 1;
-                return 0;
-              }}
-            >
-              <CommandInput placeholder="Search or create category..." />
+            <Command>
+              <CommandInput placeholder="Search category..." />
               <CommandList>
-                <CommandEmpty>
-                  <Button
-                    className="w-full"
-                    onClick={() => {
-                      const input = document.querySelector<HTMLInputElement>('input[cmdk-input]');
-                      if (input && input.value) {
-                         const newCatLabel = input.value.trim();
-                         const newCatValue = newCatLabel.toLowerCase().replace(/\s+/g, '-');
-                         if (newCatLabel && !categories.some(c => c.value === newCatValue)) {
-                           setCategories(prev => [...prev, { value: newCatValue, label: newCatLabel }]);
-                         }
-                         setNewItemCategory(newCatValue);
-                         setAddOpenCategoryPopover(false);
-                      }
-                    }}
-                  >
-                    Create "{document.querySelector<HTMLInputElement>('input[cmdk-input]')?.value}"
-                  </Button>
-                </CommandEmpty>
+                <CommandEmpty>No category found.</CommandEmpty>
                 <CommandGroup>
-                  {categories.map((category) => (
+                  {categories?.map((category) => (
                     <CommandItem
                       key={category.value}
                       value={category.value}
@@ -575,36 +529,12 @@ export default function CatererPage() {
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-[300px] p-0">
-            <Command
-              filter={(value, search) => {
-                const label = findCategoryLabel(value);
-                if (label.toLowerCase().includes(search.toLowerCase())) return 1;
-                return 0;
-              }}
-            >
-              <CommandInput placeholder="Search or create category..." />
+            <Command>
+              <CommandInput placeholder="Search category..." />
               <CommandList>
-                <CommandEmpty>
-                   <Button
-                    className="w-full"
-                    onClick={() => {
-                      const input = document.querySelector<HTMLInputElement>('input[cmdk-input]');
-                      if (input && input.value) {
-                         const newCatLabel = input.value.trim();
-                         const newCatValue = newCatLabel.toLowerCase().replace(/\s+/g, '-');
-                         if (newCatLabel && !categories.some(c => c.value === newCatValue)) {
-                           setCategories(prev => [...prev, { value: newCatValue, label: newCatLabel }]);
-                         }
-                         setEditItemCategory(newCatValue);
-                         setEditOpenCategoryPopover(false);
-                      }
-                    }}
-                  >
-                    Create "{document.querySelector<HTMLInputElement>('input[cmdk-input]')?.value}"
-                  </Button>
-                </CommandEmpty>
+                <CommandEmpty>No category found.</CommandEmpty>
                 <CommandGroup>
-                  {categories.map((category) => (
+                  {categories?.map((category) => (
                     <CommandItem
                       key={category.value}
                       value={category.value}
@@ -678,7 +608,7 @@ export default function CatererPage() {
     </div>
   );
 
-  if (isMenuLoading) {
+  if (isMenuLoading || areCategoriesLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         Loading...
@@ -686,7 +616,7 @@ export default function CatererPage() {
     );
   }
 
-  const categoryOrder = Object.keys(groupedMenuItems);
+  const categoryOrder = categories ? categories.map(c => c.value) : [];
 
   return (
     <SidebarProvider>
@@ -702,9 +632,11 @@ export default function CatererPage() {
           <SidebarMenu>
             {menuLinks.map((item) => (
               <SidebarMenuItem key={item}>
-                <SidebarMenuButton isActive={item === 'Menu Items'}>
-                  {item}
-                </SidebarMenuButton>
+                <Link href={item === 'Menu Items' ? '/caterer' : `/caterer/${item.toLowerCase().replace(' ', '-')}`} className="w-full">
+                  <SidebarMenuButton isActive={item === 'Menu Items'}>
+                    {item}
+                  </SidebarMenuButton>
+                </Link>
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
@@ -822,11 +754,11 @@ export default function CatererPage() {
 
           <div className="grid gap-4">
              {menuItems && menuItems.length > 0 ? (
-              categoryOrder.map((category) => (
-                <div key={category}>
-                  <h2 className="text-xl font-bold my-4">{findCategoryLabel(category)}</h2>
+              categoryOrder.map((categoryValue) => (
+                <div key={categoryValue}>
+                  <h2 className="text-xl font-bold my-4">{findCategoryLabel(categoryValue)}</h2>
                   <div className="grid gap-4">
-                    {groupedMenuItems[category].map((item) => (
+                    {groupedMenuItems[categoryValue]?.map((item) => (
                       <Card key={item.id}>
                         <CardContent className="flex items-center gap-4 p-4">
                           {item.imageUrl && (
