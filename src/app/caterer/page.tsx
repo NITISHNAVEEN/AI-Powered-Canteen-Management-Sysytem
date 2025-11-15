@@ -68,6 +68,7 @@ type MenuItem = {
   available: boolean;
   category: string;
   imageUrl?: string;
+  catererId: string;
 };
 
 type Category = {
@@ -96,7 +97,7 @@ export default function CatererPage() {
   const categoriesRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'caterers', catererId, 'categories');
-  }, [firestore]);
+  }, [firestore, catererId]);
   const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesRef);
 
   // Add Item State
@@ -125,7 +126,7 @@ export default function CatererPage() {
   const menuItemsRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'caterers', catererId, 'menuItems');
-  }, [firestore]);
+  }, [firestore, catererId]);
 
   const { data: menuItems, isLoading: isMenuLoading } =
     useCollection<MenuItem>(menuItemsRef);
