@@ -2,24 +2,8 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow public read access to all collections
-    match /{path=**} {
-      allow read: if true;
-    }
-
-    // Allow writes to the caterer document itself (e.g. for isCanteenOpen)
-    match /caterers/{catererId} {
-      allow write: if true;
-    }
-
-    // Allow writes to caterer subcollections (e.g. menuItems, orders)
-    match /caterers/{catererId}/{document=**} {
-      allow write: if true;
-    }
-
-    // Allow users to create their own orders
-    match /users/{userId}/orders/{orderId} {
-        allow write: if true;
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }

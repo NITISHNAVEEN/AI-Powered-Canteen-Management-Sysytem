@@ -13,10 +13,8 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import {
   Dialog,
@@ -46,6 +44,7 @@ import {
 import { collection, doc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { Label } from '@/components/ui/label';
 
 type Category = {
   id: string;
@@ -54,8 +53,6 @@ type Category = {
 
 export default function CategoriesPage() {
   const router = useRouter();
-  const pathname = usePathname();
-  const isCaterer = pathname.startsWith('/caterer');
   const firestore = useFirestore();
   const [currentTime, setCurrentTime] = useState('');
   const { toast } = useToast();
@@ -86,10 +83,6 @@ export default function CategoriesPage() {
   }, []);
 
   const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Categories', 'Settings'];
-
-  const handleRoleChange = (checked: boolean) => {
-    router.push(checked ? '/caterer' : '/');
-  };
 
   const resetAddForm = useCallback(() => {
     setNewCategoryName('');
@@ -140,7 +133,7 @@ export default function CategoriesPage() {
         <SidebarHeader>
           <div className="flex items-center gap-2">
             <div className="flex flex-col">
-              <h2 className="text-lg font-semibold">APP NAME</h2>
+              <h2 className="text-lg font-semibold">Caterer Admin</h2>
             </div>
           </div>
         </SidebarHeader>
@@ -166,30 +159,9 @@ export default function CategoriesPage() {
               <Clock className="w-5 h-5" />
               <span>{currentTime} IST</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Link href={isCaterer ? '/caterer' : '/'}>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className={`rounded-full w-10 h-10 font-bold ${
-                    isCaterer
-                      ? 'text-red-600 border-red-600'
-                      : 'text-green-600 border-green-600'
-                  }`}
-                >
-                  {isCaterer ? 'C' : 'U'}
-                </Button>
-              </Link>
-              <div className="flex items-center space-x-2">
-                <Label htmlFor="role-switch">User</Label>
-                <Switch
-                  id="role-switch"
-                  checked={isCaterer}
-                  onCheckedChange={handleRoleChange}
-                />
-                <Label htmlFor="role-switch">Caterer</Label>              
-              </div>
-            </div>
+             <Button asChild variant="outline">
+                <Link href="/">View User Site</Link>
+              </Button>
           </div>
         </header>
 

@@ -15,10 +15,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -58,8 +56,6 @@ type GroupedItems = {
 
 export default function Home() {
   const router = useRouter();
-  const pathname = usePathname();
-  const isCaterer = pathname.startsWith('/caterer');
   const [currentTime, setCurrentTime] = useState('');
   const firestore = useFirestore();
   const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -194,10 +190,6 @@ export default function Home() {
       block: 'start',
     });
   };
-
-  const handleRoleChange = (checked: boolean) => {
-    router.push(checked ? '/caterer' : '/');
-  };
   
   if (isMenuLoading || areCategoriesLoading || isCatererLoading) {
     return (
@@ -213,7 +205,7 @@ export default function Home() {
         <SidebarHeader>
           <div className="flex items-center gap-2">
             <div className="flex flex-col">
-              <h2 className="text-lg font-semibold">APP NAME</h2>
+              <h2 className="text-lg font-semibold">Canteen Menu</h2>
             </div>
           </div>
         </SidebarHeader>
@@ -239,30 +231,9 @@ export default function Home() {
               <Clock className="w-5 h-5" />
               <span>{currentTime} IST</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Link href={isCaterer ? '/caterer' : '/'}>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className={`rounded-full w-10 h-10 font-bold ${
-                    isCaterer
-                      ? 'text-red-600 border-red-600'
-                      : 'text-green-600 border-green-600'
-                  }`}
-                >
-                  {isCaterer ? 'C' : 'U'}
-                </Button>
-              </Link>
-              <div className="flex items-center space-x-2">
-                <Label htmlFor="role-switch">User</Label>
-                <Switch
-                  id="role-switch"
-                  checked={isCaterer}
-                  onCheckedChange={handleRoleChange}
-                />
-                <Label htmlFor="role-switch">Caterer</Label>
-              </div>
-            </div>
+            <Button asChild variant="outline">
+                <Link href="/caterer">View Caterer Site</Link>
+            </Button>
           </div>
         </header>
 

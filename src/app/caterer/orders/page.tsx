@@ -13,10 +13,8 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { useState, useEffect, useMemo } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking, setDoc } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import {
@@ -40,7 +38,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -83,8 +80,6 @@ const statusColors = {
 
 export default function OrdersPage() {
   const router = useRouter();
-  const pathname = usePathname();
-  const isCaterer = pathname.startsWith('/caterer');
   const firestore = useFirestore();
   const [currentTime, setCurrentTime] = useState('');
   const catererId = 'demo-caterer';
@@ -113,23 +108,19 @@ export default function OrdersPage() {
 
   const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Categories', 'Settings'];
 
-  const handleRoleChange = (checked: boolean) => {
-    router.push(checked ? '/caterer' : '/');
-  };
-
   const handleStatusChange = (order: Order, newStatus: Order['status']) => {
     if (!firestore) return;
     
-    const updatedOrderData = { ...order, status: newStatus };
-
     // Update the caterer's order document
     const catererOrderDocRef = doc(firestore, 'caterers', catererId, 'orders', order.id);
     updateDocumentNonBlocking(catererOrderDocRef, { status: newStatus });
 
-    // Update the user's order document
-    const userOrderDocRef = doc(firestore, 'users', order.userId, 'orders', order.id);
-    // Use setDoc with merge to ensure the user's order is created or updated
-    setDoc(userOrderDocRef, { status: newStatus }, { merge: true });
+    // Update the user's order document (if userId exists)
+    if (order.userId) {
+        const userOrderDocRef = doc(firestore, 'users', order.userId, 'orders', order.id);
+        // Use setDoc with merge to ensure the user's order is created or updated
+        setDoc(userOrderDocRef, { status: newStatus }, { merge: true });
+    }
 
     toast({ title: 'Order status updated!' });
   };
@@ -144,7 +135,7 @@ export default function OrdersPage() {
         <SidebarHeader>
           <div className="flex items-center gap-2">
             <div className="flex flex-col">
-              <h2 className="text-lg font-semibold">APP NAME</h2>
+              <h2 className="text-lg font-semibold">Caterer Admin</h2>
             </div>
           </div>
         </SidebarHeader>
@@ -164,38 +155,15 @@ export default function OrdersPage() {
       </Sidebar>
       <SidebarInset>
         <header className="flex items-center justify-between p-4 border-b">
-          <div className="flex items-center gap-4">
-            <SidebarTrigger />
-          </div>
+          <SidebarTrigger />
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 p-2 border rounded-md">
               <Clock className="w-5 h-5" />
               <span>{currentTime} IST</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Link href={isCaterer ? '/caterer' : '/'}>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className={`rounded-full w-10 h-10 font-bold ${
-                    isCaterer
-                      ? 'text-red-600 border-red-600'
-                      : 'text-green-600 border-green-600'
-                  }`}
-                >
-                  {isCaterer ? 'C' : 'U'}
-                </Button>
-              </Link>
-              <div className="flex items-center space-x-2">
-                <Label htmlFor="role-switch">User</Label>
-                <Switch
-                  id="role-switch"
-                  checked={isCaterer}
-                  onCheckedChange={handleRoleChange}
-                />
-                <Label htmlFor="role-switch">Caterer</Label>
-              </div>
-            </div>
+            <Button asChild variant="outline">
+                <Link href="/">View User Site</Link>
+            </Button>
           </div>
         </header>
 

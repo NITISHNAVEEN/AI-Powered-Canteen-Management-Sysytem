@@ -7,14 +7,16 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useFirebase, addDocumentNonBlocking, useUser, setDocumentNonBlocking, doc } from '@/firebase';
+import { useFirebase, addDocumentNonBlocking, setDocumentNonBlocking, doc } from '@/firebase';
 import { collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { v4 as uuidv4 } from 'uuid';
+
 
 export default function CheckoutPage() {
   const { cartItems, addToCart, removeFromCart, clearCart } = useCart();
-  const { firestore, user } = useFirebase();
+  const { firestore } = useFirebase();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -32,11 +34,11 @@ export default function CheckoutPage() {
   }
 
   const handlePlaceOrder = () => {
-    if (!firestore || !user || cartItems.length === 0) {
+    if (!firestore || cartItems.length === 0) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'You must be logged in and have items in your cart to place an order.',
+        description: 'You must have items in your cart to place an order.',
       });
       return;
     }
@@ -48,9 +50,10 @@ export default function CheckoutPage() {
     }
 
     const tokenNumber = Math.floor(Math.random() * 100) + 1;
+    const userId = uuidv4(); // Generate a unique ID for this anonymous order
 
     const orderData = {
-      userId: user.uid,
+      userId: userId,
       catererId: catererId,
       items: cartItems.map(item => ({
         id: item.id,
@@ -61,8 +64,8 @@ export default function CheckoutPage() {
       totalAmount: total,
       status: 'Pending' as const,
       orderDate: serverTimestamp(),
-      customerName: user.displayName || 'Anonymous User',
-      customerEmail: user.email || null,
+      customerName: 'Anonymous User',
+      customerEmail: null,
       tokenNumber: tokenNumber,
     };
     
@@ -73,7 +76,7 @@ export default function CheckoutPage() {
         // This block executes on successful write to the caterer's collection
         if (orderDocRef) {
           // 2. Add same order to user's collection, using the same ID for consistency
-          const userOrderDoc = doc(firestore, 'users', user.uid, 'orders', orderDocRef.id);
+          const userOrderDoc = doc(firestore, 'users', userId, 'orders', orderDocRef.id);
           // Use setDocumentNonBlocking here to ensure the ID is the same
           setDocumentNonBlocking(userOrderDoc, orderData, { merge: false });
         }
