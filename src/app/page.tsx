@@ -58,6 +58,7 @@ export default function Home() {
 
   const [recommendations, setRecommendations] = useState<RecommendedItemsOutput | null>(null);
   const [areRecommendationsLoading, setAreRecommendationsLoading] = useState(true);
+  const [recommendationsFetched, setRecommendationsFetched] = useState(false);
 
   // Hardcoded catererId for demonstration
   const catererId = 'demo-caterer';
@@ -145,7 +146,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (menuItems && menuItems.length > 0 && currentTime) {
+    if (menuItems && menuItems.length > 0 && currentTime && !recommendationsFetched) {
       const fetchRecommendations = async () => {
         setAreRecommendationsLoading(true);
         try {
@@ -154,6 +155,7 @@ export default function Home() {
             menuItems: menuItems.map(({ id, name, description }) => ({ id, name, description })),
           });
           setRecommendations(aiRecommendations);
+          setRecommendationsFetched(true); // Mark as fetched
         } catch (error) {
           console.error("Failed to get AI recommendations:", error);
           setRecommendations(null); // Clear recommendations on error
@@ -162,11 +164,12 @@ export default function Home() {
         }
       };
       fetchRecommendations();
-    } else if (!isMenuLoading) {
-      // If there are no menu items, don't show loading state
+    } else if (!isMenuLoading && !recommendationsFetched) {
+      // If there are no menu items, or already fetched, don't show loading state
       setAreRecommendationsLoading(false);
     }
-  }, [menuItems, currentTime, isMenuLoading]);
+  }, [menuItems, currentTime, isMenuLoading, recommendationsFetched]);
+
 
   const handleCategoryClick = (categoryValue: string) => {
     sectionRefs.current[categoryValue]?.scrollIntoView({
