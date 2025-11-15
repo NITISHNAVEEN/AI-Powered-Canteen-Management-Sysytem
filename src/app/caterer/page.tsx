@@ -1,5 +1,5 @@
 'use client';
-import { Clock, PlusCircle, Trash2, Check, ChevronsUpDown, Edit } from 'lucide-react';
+import { Clock, PlusCircle, Trash2, Edit, Check, ChevronsUpDown } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -48,17 +48,8 @@ import { collection, doc } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { getItemCategory } from '@/ai/flows/get-item-category-flow';
 
 type MenuItem = {
   id: string;
@@ -70,12 +61,6 @@ type MenuItem = {
   imageUrl?: string;
   catererId: string;
 };
-
-type Category = {
-    id: string;
-    value: string;
-    label: string;
-}
 
 type ImageSource = 'upload' | 'url' | 'none';
 
@@ -94,22 +79,14 @@ export default function CatererPage() {
   // A hardcoded catererId for demonstration without auth
   const catererId = 'demo-caterer';
 
-  const categoriesRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'caterers', catererId, 'categories');
-  }, [firestore, catererId]);
-  const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesRef);
-
   // Add Item State
   const [isAddOpen, setAddOpen] = useState(false);
   const [newItemName, setNewItemName] = useState('');
   const [newItemDescription, setNewItemDescription] = useState('');
   const [newItemPrice, setNewItemPrice] = useState('');
-  const [newItemCategory, setNewItemCategory] = useState('');
   const [addImageSource, setAddImageSource] = useState<ImageSource>('none');
   const [addImageUrl, setAddImageUrl] = useState('');
   const [addImageFile, setAddImageFile] = useState<File | null>(null);
-  const [addOpenCategoryPopover, setAddOpenCategoryPopover] = useState(false);
   
   // Edit Item State
   const [isEditOpen, setEditOpen] = useState(false);
@@ -117,11 +94,9 @@ export default function CatererPage() {
   const [editItemName, setEditItemName] = useState('');
   const [editItemDescription, setEditItemDescription] = useState('');
   const [editItemPrice, setEditItemPrice] = useState('');
-  const [editItemCategory, setEditItemCategory] = useState('');
   const [editImageSource, setEditImageSource] = useState<ImageSource>('none');
   const [editImageUrl, setEditImageUrl] = useState('');
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
-  const [editOpenCategoryPopover, setEditOpenCategoryPopover] = useState(false);
 
   const menuItemsRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -142,6 +117,23 @@ export default function CatererPage() {
       return acc;
     }, {} as GroupedMenuItems);
   }, [menuItems]);
+  
+  const categoryOrder = useMemo(() => {
+      if (!menuItems) return [];
+      const order = ['Breakfast', 'Lunch', 'Snacks', 'Dinner', 'Main Course', 'Beverages', 'Desserts'];
+      const presentCategories = new Set(menuItems.map(item => item.category));
+      
+      const sorted = Array.from(presentCategories).sort((a, b) => {
+        const indexA = order.indexOf(a);
+        const indexB = order.indexOf(b);
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return a.localeCompare(b);
+      });
+      return sorted;
+  }, [menuItems]);
+
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -152,7 +144,7 @@ export default function CatererPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Categories', 'Settings'];
+  const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Settings'];
 
   const handleRoleChange = (checked: boolean) => {
     router.push(checked ? '/caterer' : '/');
@@ -162,7 +154,6 @@ export default function CatererPage() {
     setNewItemName('');
     setNewItemDescription('');
     setNewItemPrice('');
-    setNewItemCategory('');
     setAddImageSource('none');
     setAddImageUrl('');
     setAddImageFile(null);
@@ -174,14 +165,13 @@ export default function CatererPage() {
     setEditItemName('');
     setEditItemDescription('');
     setEditItemPrice('');
-    setEditItemCategory('');
     setEditImageSource('none');
     setEditImageUrl('');
     setEditImageFile(null);
     setEditOpen(false);
   }, []);
 
-  const handleAddMenuItem = () => {
+  const handleAddMenuItem = async () => {
     if (!menuItemsRef) return;
     const price = parseFloat(newItemPrice);
     if (isNaN(price)) {
@@ -193,14 +183,22 @@ export default function CatererPage() {
       return;
     }
 
-    if (!newItemCategory) {
+    let category = 'Uncategorized';
+    try {
+      category = await getItemCategory({
+        name: newItemName,
+        description: newItemDescription,
+      });
+    } catch (error) {
+      console.error("Failed to get category from AI:", error);
       toast({
         variant: 'destructive',
-        title: 'Category required',
-        description: 'Please select a category for the menu item.',
+        title: 'AI Categorization Failed',
+        description: 'Could not determine a category. Please try again.',
       });
       return;
     }
+
 
     const saveItem = (finalImageUrl?: string) => {
       const newItemData: Omit<MenuItem, 'id'> = {
@@ -209,7 +207,7 @@ export default function CatererPage() {
         description: newItemDescription,
         price,
         available: true,
-        category: newItemCategory,
+        category,
         ...(finalImageUrl && { imageUrl: finalImageUrl }),
       };
 
@@ -231,7 +229,7 @@ export default function CatererPage() {
     }
   };
 
-  const handleEditMenuItem = () => {
+  const handleEditMenuItem = async () => {
     if (!firestore || !editingItem) return;
 
     const price = parseFloat(editItemPrice);
@@ -244,14 +242,25 @@ export default function CatererPage() {
       return;
     }
 
-    if (!editItemCategory) {
-      toast({
-        variant: 'destructive',
-        title: 'Category required',
-        description: 'Please select a category for the menu item.',
-      });
-      return;
+    let category = editingItem.category;
+    // Recategorize if name or description changed
+    if (editItemName !== editingItem.name || editItemDescription !== editingItem.description) {
+      try {
+        category = await getItemCategory({
+          name: editItemName,
+          description: editItemDescription,
+        });
+      } catch (error) {
+        console.error("Failed to get category from AI:", error);
+        toast({
+          variant: 'destructive',
+          title: 'AI Categorization Failed',
+          description: 'Could not update the category. Please try again.',
+        });
+        return;
+      }
     }
+
 
     const itemDocRef = doc(firestore, 'caterers', catererId, 'menuItems', editingItem.id);
 
@@ -260,7 +269,7 @@ export default function CatererPage() {
         name: editItemName,
         description: editItemDescription,
         price,
-        category: editItemCategory,
+        category,
       };
       
       if (editImageSource !== 'none') {
@@ -292,7 +301,6 @@ export default function CatererPage() {
     setEditItemName(item.name);
     setEditItemDescription(item.description);
     setEditItemPrice(String(item.price));
-    setEditItemCategory(item.category);
     setEditImageUrl(item.imageUrl || '');
     setEditImageSource(item.imageUrl ? 'url' : 'none');
     setEditImageFile(null);
@@ -323,11 +331,6 @@ export default function CatererPage() {
     deleteDocumentNonBlocking(itemDocRef);
     toast({ title: 'Menu item removed.' });
   };
-  
-  const findCategoryLabel = (value: string) => {
-    const category = categories?.find(c => c.value === value);
-    return category ? category.label : value;
-  }
 
   const renderAddFormContent = () => (
     <div className="grid gap-4 py-4">
@@ -367,61 +370,6 @@ export default function CatererPage() {
           className="col-span-3"
           placeholder="e.g., 50.00"
         />
-      </div>
-      <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="add-category" className="text-right">
-          Category
-        </Label>
-        <Popover
-          open={addOpenCategoryPopover}
-          onOpenChange={setAddOpenCategoryPopover}
-        >
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={addOpenCategoryPopover}
-              className="col-span-3 justify-between"
-            >
-              {newItemCategory
-                ? findCategoryLabel(newItemCategory)
-                : 'Select category...'}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[300px] p-0">
-            <Command>
-              <CommandInput placeholder="Search category..." />
-              <CommandList>
-                <CommandEmpty>No category found.</CommandEmpty>
-                <CommandGroup>
-                  {categories?.map((category) => (
-                    <CommandItem
-                      key={category.value}
-                      value={category.value}
-                      onSelect={(currentValue) => {
-                        setNewItemCategory(
-                          currentValue === newItemCategory ? '' : currentValue
-                        );
-                        setAddOpenCategoryPopover(false);
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          'mr-2 h-4 w-4',
-                          newItemCategory === category.value
-                            ? 'opacity-100'
-                            : 'opacity-0'
-                        )}
-                      />
-                      {category.label}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
       </div>
       <div className="grid grid-cols-4 items-start gap-4">
         <Label className="text-right pt-2">Photo</Label>
@@ -508,61 +456,6 @@ export default function CatererPage() {
           placeholder="e.g., 50.00"
         />
       </div>
-      <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="edit-category" className="text-right">
-          Category
-        </Label>
-        <Popover
-          open={editOpenCategoryPopover}
-          onOpenChange={setEditOpenCategoryPopover}
-        >
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={editOpenCategoryPopover}
-              className="col-span-3 justify-between"
-            >
-              {editItemCategory
-                ? findCategoryLabel(editItemCategory)
-                : 'Select category...'}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[300px] p-0">
-            <Command>
-              <CommandInput placeholder="Search category..." />
-              <CommandList>
-                <CommandEmpty>No category found.</CommandEmpty>
-                <CommandGroup>
-                  {categories?.map((category) => (
-                    <CommandItem
-                      key={category.value}
-                      value={category.value}
-                      onSelect={(currentValue) => {
-                        setEditItemCategory(
-                          currentValue === editItemCategory ? '' : currentValue
-                        );
-                        setEditOpenCategoryPopover(false);
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          'mr-2 h-4 w-4',
-                          editItemCategory === category.value
-                            ? 'opacity-100'
-                            : 'opacity-0'
-                        )}
-                      />
-                      {category.label}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-      </div>
       <div className="grid grid-cols-4 items-start gap-4">
         <Label className="text-right pt-2">Photo</Label>
         <div className="col-span-3 space-y-4">
@@ -609,15 +502,13 @@ export default function CatererPage() {
     </div>
   );
 
-  if (isMenuLoading || areCategoriesLoading) {
+  if (isMenuLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         Loading...
       </div>
     );
   }
-
-  const categoryOrder = categories ? categories.map(c => c.value) : [];
 
   return (
     <SidebarProvider>
@@ -708,8 +599,7 @@ export default function CatererPage() {
                       disabled={
                         !newItemName ||
                         !newItemDescription ||
-                        !newItemPrice ||
-                        !newItemCategory
+                        !newItemPrice
                       }
                     >
                       Save Item
@@ -742,8 +632,7 @@ export default function CatererPage() {
                       disabled={
                         !editItemName ||
                         !editItemDescription ||
-                        !editItemPrice ||
-                        !editItemCategory
+                        !editItemPrice
                       }
                     >
                       Save Changes
@@ -755,11 +644,11 @@ export default function CatererPage() {
 
           <div className="grid gap-4">
              {menuItems && menuItems.length > 0 ? (
-              categoryOrder.map((categoryValue) => (
-                <div key={categoryValue}>
-                  <h2 className="text-xl font-bold my-4">{findCategoryLabel(categoryValue)}</h2>
+              categoryOrder.map((category) => (
+                <div key={category}>
+                  <h2 className="text-xl font-bold my-4">{category}</h2>
                   <div className="grid gap-4">
-                    {groupedMenuItems[categoryValue]?.map((item) => (
+                    {groupedMenuItems[category]?.map((item) => (
                       <Card key={item.id}>
                         <CardContent className="flex items-center gap-4 p-4">
                           {item.imageUrl && (

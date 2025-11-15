@@ -128,7 +128,7 @@
         },
         "category": {
           "type": "string",
-          "description": "The category of the menu item (e.g. 'breakfast', 'lunch'). This should correspond to a Category entity's 'value' field."
+          "description": "The category of the menu item (e.g. 'breakfast', 'lunch')."
         }
       },
       "required": [
@@ -140,31 +140,6 @@
         "available",
         "category"
       ]
-    },
-    "Category": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Category",
-      "type": "object",
-      "description": "Represents a menu category.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Category entity."
-        },
-        "value": {
-          "type": "string",
-          "description": "The unique value for the category, used as an identifier (e.g., 'quick-snacks')."
-        },
-        "label": {
-          "type": "string",
-          "description": "The display-friendly label for the category (e.g., 'Quick Snacks')."
-        },
-        "catererId": {
-          "type": "string",
-          "description": "The ID of the caterer who owns this category."
-        }
-      },
-      "required": ["id", "value", "label", "catererId"]
     }
   },
   "auth": {
@@ -225,26 +200,6 @@
         }
       },
       {
-        "path": "caterers/{catererId}/categories/{categoryId}",
-        "definition": {
-          "entityName": "Category",
-          "schema": {
-            "$ref": "#/backend/entities/Category"
-          },
-          "description": "Stores menu categories for a specific caterer.",
-          "params": [
-            {
-              "name": "catererId",
-              "description": "The unique identifier for the caterer."
-            },
-            {
-              "name": "categoryId",
-              "description": "The unique identifier for the category."
-            }
-          ]
-        }
-      },
-      {
         "path": "users/{userId}/orders/{orderId}",
         "definition": {
           "entityName": "Order",
@@ -285,6 +240,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and efficient data access, especially concerning user-caterer order relationships.  Authorization Independence is achieved by storing the user ID on the order document.  This eliminates the need for `get()` calls to verify user ownership during order creation. The `users/{userId}` and `caterers/{catererId}` paths are used for storing user and caterer profiles respectively, enabling easy retrieval of profile information.  The `users/{userId}/orders/{orderId}` collection stores orders associated with a specific user, maintaining a clear parent-child relationship for ownership. The `caterers/{catererId}/orders/{orderId}` collection allows caterers to efficiently manage their orders. This segregation ensures QAPs by allowing secure listing of orders either by user or by caterer without exposing data inappropriately. A dedicated `caterers/{catererId}/categories` collection allows for centralized management of menu categories by each caterer."
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and efficient data access. The `MenuItem` entity now has a simple `category` string field, as categories are determined by AI and no longer need to be stored as a separate collection. This simplifies the data model. The rest of the structure remains the same to support user profiles, caterer profiles, and order management with appropriate data segregation for security and querying efficiency."
   }
 }

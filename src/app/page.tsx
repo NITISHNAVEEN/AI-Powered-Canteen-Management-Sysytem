@@ -34,19 +34,10 @@ type MenuItem = {
   category: string;
 };
 
-type Category = {
-    id: string;
-    value: string;
-    label: string;
-}
-
 type CategorizedItem = MenuItem & { image: string; imageHint: string };
 
 type GroupedItems = {
-  [categoryKey: string]: {
-    label: string;
-    items: CategorizedItem[];
-  };
+  [category: string]: CategorizedItem[];
 };
 
 export default function Home() {
@@ -63,55 +54,59 @@ export default function Home() {
 
   const menuItemsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Query for available menu items from the specific caterer
     return query(
         collection(firestore, 'caterers', catererId, 'menuItems'),
         where('available', '==', true)
     );
   }, [firestore, catererId]);
 
-  const { data: menuItemsData, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsQuery);
-
-  const categoriesRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'caterers', catererId, 'categories');
-  }, [firestore, catererId]);
-  const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesRef);
-
+  const { data: menuItems, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsQuery);
 
   const groupedItems = useMemo((): GroupedItems => {
-    if (!menuItemsData || !categories) {
+    if (!menuItems) {
       return {};
     }
 
-    const result: GroupedItems = {};
+    return menuItems.reduce((acc, item) => {
+      const category = item.category || 'Uncategorized';
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      
+      const placeholder =
+        PlaceHolderImages.find(p => p.id === item.category.toLowerCase().replace(' ', '-')) ||
+        PlaceHolderImages.find(p => p.id === 'main-course') ||
+        PlaceHolderImages[0];
+      const imageSrc = item.imageUrl || placeholder.imageUrl || 'https://picsum.photos/seed/1/600/400';
 
-    categories.forEach(category => {
-        result[category.value] = {
-            label: category.label,
-            items: menuItemsData
-                .filter(item => item.category === category.value)
-                .map(item => {
-                    const placeholder =
-                    PlaceHolderImages.find(p => p.id === item.category) ||
-                    PlaceHolderImages[0];
-                    const imageSrc = item.imageUrl || placeholder.imageUrl || 'https://picsum.photos/seed/1/600/400';
+      acc[category].push({
+          ...item,
+          image: imageSrc,
+          imageHint: placeholder?.imageHint || 'food',
+      });
+      return acc;
+    }, {} as GroupedItems);
 
-                    return {
-                    ...item,
-                    image: imageSrc,
-                    imageHint: placeholder?.imageHint || 'food',
-                    };
-                }),
-        }
-    });
-
-    return result;
-  }, [menuItemsData, categories]);
+  }, [menuItems]);
+  
+  const categories = useMemo(() => {
+    if (!menuItems) return [];
+    const order = ['Breakfast', 'Lunch', 'Snacks', 'Dinner', 'Main Course', 'Beverages', 'Desserts'];
+    const presentCategories = new Set(menuItems.map(item => item.category));
+    
+    return Array.from(presentCategories).sort((a, b) => {
+        const indexA = order.indexOf(a);
+        const indexB = order.indexOf(b);
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return a.localeCompare(b);
+      });
+  }, [menuItems]);
 
   useEffect(() => {
      if (categories && categories.length > 0 && !activeCategory) {
-        setActiveCategory(categories[0].value);
+        setActiveCategory(categories[0]);
      }
   }, [categories, activeCategory]);
 
@@ -137,7 +132,7 @@ export default function Home() {
     router.push(checked ? '/caterer' : '/');
   };
   
-  if (isMenuLoading || areCategoriesLoading) {
+  if (isMenuLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         Loading menu...
@@ -157,13 +152,13 @@ export default function Home() {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            {categories?.map((cat) => (
-              <SidebarMenuItem key={cat.value}>
+            {categories.map((cat) => (
+              <SidebarMenuItem key={cat}>
                 <SidebarMenuButton 
-                    isActive={activeCategory === cat.value}
-                    onClick={() => handleCategoryClick(cat.value)}
+                    isActive={activeCategory === cat}
+                    onClick={() => handleCategoryClick(cat)}
                 >
-                  {cat.label}
+                  {cat}
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
@@ -208,11 +203,11 @@ export default function Home() {
         <main className="flex-1 p-4 overflow-y-auto">
            {categories && categories.length > 0 ? (
             categories.map(category => (
-                groupedItems[category.value] && groupedItems[category.value].items.length > 0 && (
-                    <div key={category.value} ref={el => sectionRefs.current[category.value] = el} className="mb-8">
-                        <h2 className="text-2xl font-bold mb-4">{category.label}</h2>
+                groupedItems[category] && groupedItems[category].length > 0 && (
+                    <div key={category} ref={el => sectionRefs.current[category] = el} className="mb-8">
+                        <h2 className="text-2xl font-bold mb-4">{category}</h2>
                         <div className="grid gap-4">
-                        {groupedItems[category.value].items.map((item) => (
+                        {groupedItems[category].map((item) => (
                             <Card key={item.id} className={!item.available ? 'opacity-50 pointer-events-none' : ''}>
                             <CardContent className="flex items-center gap-4 p-4">
                                 <Image
