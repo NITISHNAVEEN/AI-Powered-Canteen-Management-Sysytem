@@ -22,6 +22,9 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { getRecommendedItems, RecommendedItemsOutput } from '@/ai/flows/get-recommended-items-flow';
+import { Skeleton } from '@/components/ui/skeleton';
+
 
 type MenuItem = {
   id: string;
@@ -52,6 +55,9 @@ export default function Home() {
   const [currentTime, setCurrentTime] = useState('');
   const firestore = useFirestore();
   const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+  const [recommendations, setRecommendations] = useState<RecommendedItemsOutput | null>(null);
+  const [areRecommendationsLoading, setAreRecommendationsLoading] = useState(true);
 
   // Hardcoded catererId for demonstration
   const catererId = 'demo-caterer';
@@ -109,7 +115,7 @@ export default function Home() {
     
     const orderedCategories = definedCategoryNames.filter(c => allCategoriesInMenu.includes(c));
     
-    const uncategorizedItemsExist = allCategoriesInMenu.includes('Uncategorized');
+    const uncategorizedInMenu = allCategoriesInMenu.includes('Uncategorized');
     
     allCategoriesInMenu.forEach(c => {
         if (!orderedCategories.includes(c) && c !== 'Uncategorized') {
@@ -117,22 +123,50 @@ export default function Home() {
         }
     });
 
-    if (uncategorizedItemsExist) {
+    if (uncategorizedInMenu) {
         orderedCategories.push('Uncategorized');
     }
     
     return orderedCategories;
 }, [categoriesData, menuItems]);
 
+  const recommendedItems = useMemo(() => {
+    if (!recommendations || !menuItems) return [];
+    return menuItems.filter(item => recommendations.recommendedItemIds.includes(item.id));
+  }, [recommendations, menuItems]);
+
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(
-        new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })
-      );
+      const timeString = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
+      setCurrentTime(timeString);
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (menuItems && menuItems.length > 0 && currentTime) {
+      const fetchRecommendations = async () => {
+        setAreRecommendationsLoading(true);
+        try {
+          const aiRecommendations = await getRecommendedItems({
+            currentTime: currentTime,
+            menuItems: menuItems.map(({ id, name, description }) => ({ id, name, description })),
+          });
+          setRecommendations(aiRecommendations);
+        } catch (error) {
+          console.error("Failed to get AI recommendations:", error);
+          setRecommendations(null); // Clear recommendations on error
+        } finally {
+          setAreRecommendationsLoading(false);
+        }
+      };
+      fetchRecommendations();
+    } else if (!isMenuLoading) {
+      // If there are no menu items, don't show loading state
+      setAreRecommendationsLoading(false);
+    }
+  }, [menuItems, currentTime, isMenuLoading]);
 
   const handleCategoryClick = (categoryValue: string) => {
     sectionRefs.current[categoryValue]?.scrollIntoView({
@@ -213,6 +247,66 @@ export default function Home() {
         </header>
 
         <main className="flex-1 p-4 overflow-y-auto">
+          {/* Recommendations Section */}
+          {areRecommendationsLoading && (
+            <div className="mb-8">
+              <Skeleton className="h-8 w-1/3 mb-4" />
+              <div className="grid grid-cols-1 gap-4">
+                {[...Array(3)].map((_, i) => (
+                  <Card key={i}>
+                    <CardContent className="flex items-center gap-4 p-4">
+                      <Skeleton className="w-24 h-24 rounded-md" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-5 w-3/4" />
+                        <Skeleton className="h-4 w-1/2" />
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <Skeleton className="h-5 w-12" />
+                        <Skeleton className="h-9 w-20" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!areRecommendationsLoading && recommendedItems.length > 0 && recommendations && (
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold mb-2">Recommended for you</h2>
+              <p className="text-muted-foreground mb-4">{recommendations.recommendationReason}</p>
+              <div className="grid grid-cols-1 gap-4">
+                {recommendedItems.map((item) => {
+                  const categorizedItem = groupedItems[item.category]?.find(gi => gi.id === item.id);
+                  if (!categorizedItem) return null;
+                  return (
+                    <Card key={item.id} className={!item.available ? 'opacity-50 pointer-events-none' : ''}>
+                      <CardContent className="flex items-center gap-4 p-4">
+                        <Image
+                          src={categorizedItem.image}
+                          alt={item.name}
+                          width={96}
+                          height={96}
+                          className="object-cover w-24 h-24 rounded-md"
+                          data-ai-hint={categorizedItem.imageHint}
+                        />
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold">{item.name}</h3>
+                          <p className="text-sm text-muted-foreground">{item.description}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <p className="font-semibold">₹{item.price.toFixed(2)}</p>
+                          <Button disabled={!item.available}>Add</Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+
            {categoriesInOrder && categoriesInOrder.length > 0 ? (
             categoriesInOrder.map(category => (
                 groupedItems[category] && groupedItems[category].length > 0 && (
