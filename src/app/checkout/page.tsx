@@ -7,8 +7,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useFirebase, addDocumentNonBlocking, useUser, setDoc } from '@/firebase';
-import { collection, serverTimestamp, doc } from 'firebase/firestore';
+import { useFirebase, addDocumentNonBlocking, useUser, setDocumentNonBlocking, doc } from '@/firebase';
+import { collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
@@ -31,7 +31,7 @@ export default function CheckoutPage() {
     return item.imageUrl || placeholder.imageUrl;
   }
 
-  const handlePlaceOrder = async () => {
+  const handlePlaceOrder = () => {
     if (!firestore || !user || cartItems.length === 0) {
       toast({
         variant: 'destructive',
@@ -66,33 +66,35 @@ export default function CheckoutPage() {
       tokenNumber: tokenNumber,
     };
     
-    try {
-      // 1. Add order to caterer's collection
-      const catererOrdersRef = collection(firestore, 'caterers', catererId, 'orders');
-      const orderDocRef = await addDocumentNonBlocking(catererOrdersRef, orderData);
-
-      // 2. Add same order to user's collection, using the same ID for consistency
-      if (orderDocRef) {
-          const userOrdersRef = collection(firestore, 'users', user.uid, 'orders');
-          const userOrderDoc = doc(userOrdersRef, orderDocRef.id);
-          // Use setDoc here to ensure the ID is the same as the caterer's order doc
-          setDoc(userOrderDoc, orderData);
-      }
-      
-      toast({
-        title: 'Order Placed!',
-        description: `Your order token is #${tokenNumber}. It has been successfully placed.`,
-      });
-      clearCart();
-      router.push('/order');
-    } catch (error) {
-        console.error("Order placement error: ", error);
+    // 1. Add order to caterer's collection
+    const catererOrdersRef = collection(firestore, 'caterers', catererId, 'orders');
+    addDocumentNonBlocking(catererOrdersRef, orderData)
+      .then(orderDocRef => {
+        // This block executes on successful write to the caterer's collection
+        if (orderDocRef) {
+          // 2. Add same order to user's collection, using the same ID for consistency
+          const userOrderDoc = doc(firestore, 'users', user.uid, 'orders', orderDocRef.id);
+          // Use setDocumentNonBlocking here to ensure the ID is the same
+          setDocumentNonBlocking(userOrderDoc, orderData, { merge: false });
+        }
+        
+        toast({
+          title: 'Order Placed!',
+          description: `Your order token is #${tokenNumber}. It has been successfully placed.`,
+        });
+        clearCart();
+        router.push('/order');
+      })
+      .catch(error => {
+        // This catch is for client-side errors or if the non-blocking function re-throws.
+        // The permission error is handled inside `addDocumentNonBlocking`.
+        console.error("Order placement failed:", error);
         toast({
             variant: 'destructive',
             title: 'Failed to place order',
             description: 'There was an issue submitting your order. Please try again.',
         });
-    }
+      });
   };
 
 
