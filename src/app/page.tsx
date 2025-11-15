@@ -149,12 +149,12 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (menuItems && menuItems.length > 0 && currentTime && !recommendationsFetched) {
+    if (menuItems && menuItems.length > 0 && !recommendationsFetched) {
       const fetchRecommendations = async () => {
         setAreRecommendationsLoading(true);
         try {
           const aiRecommendations = await getRecommendedItems({
-            currentTime: currentTime,
+            currentTime: new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' }),
             menuItems: menuItems.map(({ id, name, description }) => ({ id, name, description })),
           });
           setRecommendations(aiRecommendations);
@@ -171,7 +171,7 @@ export default function Home() {
       // If there are no menu items, or already fetched, don't show loading state
       setAreRecommendationsLoading(false);
     }
-  }, [menuItems, currentTime, isMenuLoading, recommendationsFetched]);
+  }, [menuItems, isMenuLoading, recommendationsFetched]);
 
 
   const handleCategoryClick = (categoryValue: string) => {
