@@ -2,8 +2,8 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, signInAnonymously } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'
+import { getAuth, signInAnonymously, type Auth } from 'firebase/auth';
+import { getFirestore, type Firestore } from 'firebase/firestore'
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
@@ -36,7 +36,7 @@ export function initializeFirebase() {
 }
 
 
-export function getSdks(firebaseApp: FirebaseApp | null) {
+export function getSdks(firebaseApp: FirebaseApp | null): { firebaseApp: FirebaseApp | null, auth: Auth | null, firestore: Firestore | null } {
   const auth = firebaseApp ? getAuth(firebaseApp) : null;
   const firestore = firebaseApp ? getFirestore(firebaseApp) : null;
 

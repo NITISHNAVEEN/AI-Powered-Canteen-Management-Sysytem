@@ -7,10 +7,16 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-
+import { useFirebase, addDocumentNonBlocking, useUser } from '@/firebase';
+import { collection, serverTimestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 export default function CheckoutPage() {
   const { cartItems, addToCart, removeFromCart, clearCart } = useCart();
+  const { firestore, user } = useFirebase();
+  const { toast } = useToast();
+  const router = useRouter();
 
   const total = cartItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -24,6 +30,69 @@ export default function CheckoutPage() {
       { imageUrl: 'https://picsum.photos/seed/placeholder/96/96', imageHint: 'food item' };
     return item.imageUrl || placeholder.imageUrl;
   }
+
+  const handlePlaceOrder = async () => {
+    if (!firestore || !user || cartItems.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not place order. Please try again.',
+      });
+      return;
+    }
+    
+    // Assuming all items in the cart are from the same caterer
+    const catererId = cartItems[0]?.catererId;
+    if (!catererId) {
+        toast({ variant: 'destructive', title: 'Could not determine caterer.'});
+        return;
+    }
+
+    const orderData = {
+      userId: user.uid,
+      catererId: catererId,
+      items: cartItems.map(item => ({
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+      totalAmount: total,
+      status: 'Pending',
+      orderDate: serverTimestamp(),
+      customerName: user.displayName || 'Anonymous User',
+      customerEmail: user.email || null,
+    };
+    
+    try {
+      // 1. Add order to caterer's collection
+      const catererOrdersRef = collection(firestore, 'caterers', catererId, 'orders');
+      const orderDocRef = await addDocumentNonBlocking(catererOrdersRef, orderData);
+
+      // 2. Add same order to user's collection
+      if (orderDocRef) {
+          const userOrdersRef = collection(firestore, 'users', user.uid, 'orders');
+          // We can use setDoc here with the same ID to keep them in sync
+          const userOrderDoc = doc(userOrdersRef, orderDocRef.id);
+          setDoc(userOrderDoc, orderData);
+      }
+      
+      toast({
+        title: 'Order Placed!',
+        description: 'Your order has been successfully placed.',
+      });
+      clearCart();
+      router.push('/order');
+    } catch (error) {
+        console.error("Order placement error: ", error);
+        toast({
+            variant: 'destructive',
+            title: 'Failed to place order',
+            description: 'There was an issue submitting your order. Please try again.',
+        });
+    }
+  };
+
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -94,8 +163,8 @@ export default function CheckoutPage() {
                 <Trash2 className="mr-2 h-4 w-4" />
                 Clear Cart
             </Button>
-            <Button size="lg" asChild>
-                <Link href="/order">Place Order</Link>
+            <Button size="lg" onClick={handlePlaceOrder}>
+                Place Order
             </Button>
           </CardFooter>
         )}

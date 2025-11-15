@@ -74,22 +74,43 @@
           "type": "string",
           "description": "Reference to Caterer. (Relationship: Caterer 1:N Order)"
         },
+        "items": {
+            "type": "array",
+            "description": "An array of items included in the order.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "name": {"type": "string"},
+                    "quantity": {"type": "number"},
+                    "price": {"type": "number"}
+                },
+                "required": ["id", "name", "quantity", "price"]
+            }
+        },
+        "totalAmount": {
+            "type": "number",
+            "description": "The total cost of the order."
+        },
+        "status": {
+            "type": "string",
+            "description": "The current status of the order.",
+            "enum": ["Pending", "Processing", "Delivered", "Cancelled"]
+        },
         "orderDate": {
           "type": "string",
           "description": "The date the order was placed.",
           "format": "date-time"
-        },
-        "description": {
-          "type": "string",
-          "description": "Description of the order"
         }
       },
       "required": [
         "id",
         "userId",
         "catererId",
-        "orderDate",
-        "description"
+        "items",
+        "totalAmount",
+        "status",
+        "orderDate"
       ]
     },
     "MenuItem": {
@@ -280,6 +301,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and efficient data access. The `MenuItem` entity now has a simple `category` string field, as categories are determined by AI and no longer need to be stored as a separate collection. This simplifies the data model. The rest of the structure remains the same to support user profiles, caterer profiles, and order management with appropriate data segregation for security and querying efficiency."
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and efficient data access. The `MenuItem` entity now has a simple `category` string field, as categories are determined by AI and no longer need to be stored as a separate collection. The rest of the structure remains the same to support user profiles, caterer profiles, and order management with appropriate data segregation for security and querying efficiency."
   }
 }

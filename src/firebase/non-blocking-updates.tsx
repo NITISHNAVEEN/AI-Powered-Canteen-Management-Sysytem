@@ -1,6 +1,7 @@
 'use client';
     
 import {
+  doc,
   setDoc,
   addDoc,
   updateDoc,
@@ -87,3 +88,6 @@ export function deleteDocumentNonBlocking(docRef: DocumentReference) {
       )
     });
 }
+
+// Re-export doc and setDoc for convenience in other files that need it for placing orders
+export { doc, setDoc };
