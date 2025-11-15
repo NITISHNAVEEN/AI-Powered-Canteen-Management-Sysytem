@@ -1,5 +1,5 @@
 'use client';
-import { Clock, PlusCircle, Trash2, Edit, ChevronsUpDown } from 'lucide-react';
+import { Clock, PlusCircle, Trash2, Edit } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -27,17 +27,12 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from '@/components/ui/command';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -61,7 +56,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Image from 'next/image';
-import { cn } from '@/lib/utils';
 
 type MenuItem = {
   id: string;
@@ -101,7 +95,6 @@ export default function CatererPage() {
   const [newItemDescription, setNewItemDescription] = useState('');
   const [newItemPrice, setNewItemPrice] = useState('');
   const [newItemCategory, setNewItemCategory] = useState('');
-  const [isAddCategoryOpen, setAddCategoryOpen] = useState(false);
   const [addImageSource, setAddImageSource] = useState<ImageSource>('none');
   const [addImageUrl, setAddImageUrl] = useState('');
   const [addImageFile, setAddImageFile] = useState<File | null>(null);
@@ -113,7 +106,6 @@ export default function CatererPage() {
   const [editItemDescription, setEditItemDescription] = useState('');
   const [editItemPrice, setEditItemPrice] = useState('');
   const [editItemCategory, setEditItemCategory] = useState('');
-  const [isEditCategoryOpen, setEditCategoryOpen] = useState(false);
   const [editImageSource, setEditImageSource] = useState<ImageSource>('none');
   const [editImageUrl, setEditImageUrl] = useState('');
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
@@ -146,12 +138,18 @@ export default function CatererPage() {
   
   const categoryOrder = useMemo(() => {
       if (!categories) return [];
-      const order = categories.map(c => c.name).sort((a,b) => a.localeCompare(b));
-      if (groupedMenuItems['Uncategorized']) {
-          order.push('Uncategorized');
+      const definedCategories = categories.map(c => c.name).sort((a,b) => a.localeCompare(b));
+      const allCategoriesInMenu = menuItems ? [...new Set(menuItems.map(item => item.category || 'Uncategorized'))] : [];
+      const uncategorizedInMenu = allCategoriesInMenu.includes('Uncategorized');
+
+      const ordered = definedCategories.filter(c => allCategoriesInMenu.includes(c));
+
+      if (uncategorizedInMenu) {
+        ordered.push('Uncategorized');
       }
-      return order;
-  }, [categories, groupedMenuItems]);
+      
+      return ordered;
+  }, [categories, menuItems]);
 
 
   useEffect(() => {
@@ -205,8 +203,7 @@ export default function CatererPage() {
     }
 
     const saveItem = (finalImageUrl?: string) => {
-      const newItemData: Omit<MenuItem, 'id'> = {
-        catererId: catererId,
+      const newItemData: Omit<MenuItem, 'id' | 'catererId'> = {
         name: newItemName,
         description: newItemDescription,
         price,
@@ -215,7 +212,7 @@ export default function CatererPage() {
         ...(finalImageUrl && { imageUrl: finalImageUrl }),
       };
 
-      addDocumentNonBlocking(menuItemsRef, newItemData);
+      addDocumentNonBlocking(menuItemsRef, { ...newItemData, catererId });
       toast({ title: 'Menu item added successfully!' });
       resetAddFormState();
     };
@@ -360,41 +357,18 @@ export default function CatererPage() {
         <Label htmlFor="add-category" className="text-right">
           Category
         </Label>
-        <Popover open={isAddCategoryOpen} onOpenChange={setAddCategoryOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={isAddCategoryOpen}
-              className="col-span-3 justify-between"
-            >
-              {newItemCategory
-                ? categories?.find((c) => c.name.toLowerCase() === newItemCategory.toLowerCase())?.name
-                : 'Select category...'}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[200px] p-0">
-            <Command>
-              <CommandInput placeholder="Search category..." />
-              <CommandEmpty>No category found.</CommandEmpty>
-              <CommandGroup>
+        <Select onValueChange={setNewItemCategory} value={newItemCategory}>
+            <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select a category" />
+            </SelectTrigger>
+            <SelectContent>
                 {categories?.map((category) => (
-                  <CommandItem
-                    key={category.id}
-                    value={category.name}
-                    onSelect={(currentValue) => {
-                      setNewItemCategory(currentValue === newItemCategory ? '' : currentValue);
-                      setAddCategoryOpen(false);
-                    }}
-                  >
-                    {category.name}
-                  </CommandItem>
+                    <SelectItem key={category.id} value={category.name}>
+                        {category.name}
+                    </SelectItem>
                 ))}
-              </CommandGroup>
-            </Command>
-          </PopoverContent>
-        </Popover>
+            </SelectContent>
+        </Select>
       </div>
       <div className="grid grid-cols-4 items-start gap-4">
         <Label className="text-right pt-2">Photo</Label>
@@ -485,41 +459,18 @@ export default function CatererPage() {
         <Label htmlFor="edit-category" className="text-right">
           Category
         </Label>
-        <Popover open={isEditCategoryOpen} onOpenChange={setEditCategoryOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={isEditCategoryOpen}
-              className="col-span-3 justify-between"
-            >
-              {editItemCategory
-                ? categories?.find((c) => c.name.toLowerCase() === editItemCategory.toLowerCase())?.name
-                : 'Select category...'}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[200px] p-0">
-            <Command>
-              <CommandInput placeholder="Search category..." />
-              <CommandEmpty>No category found.</CommandEmpty>
-              <CommandGroup>
+        <Select onValueChange={setEditItemCategory} value={editItemCategory}>
+            <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select a category" />
+            </SelectTrigger>
+            <SelectContent>
                 {categories?.map((category) => (
-                  <CommandItem
-                    key={category.id}
-                    value={category.name}
-                    onSelect={(currentValue) => {
-                      setEditItemCategory(currentValue === editItemCategory ? '' : currentValue);
-                      setEditCategoryOpen(false);
-                    }}
-                  >
-                    {category.name}
-                  </CommandItem>
+                    <SelectItem key={category.id} value={category.name}>
+                        {category.name}
+                    </SelectItem>
                 ))}
-              </CommandGroup>
-            </Command>
-          </PopoverContent>
-        </Popover>
+            </SelectContent>
+        </Select>
       </div>
       <div className="grid grid-cols-4 items-start gap-4">
         <Label className="text-right pt-2">Photo</Label>
@@ -800,3 +751,5 @@ export default function CatererPage() {
     </SidebarProvider>
   );
 }
+
+    
