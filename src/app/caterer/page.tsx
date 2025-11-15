@@ -101,18 +101,23 @@ export default function CatererPage() {
   const [newItemDescription, setNewItemDescription] = useState('');
   const [newItemPrice, setNewItemPrice] = useState('');
   const [newItemCategory, setNewItemCategory] = useState('');
+  const [addImageSource, setAddImageSource] = useState<ImageSource>('none');
+  const [addImageUrl, setAddImageUrl] = useState('');
+  const [addImageFile, setAddImageFile] = useState<File | null>(null);
+  const [addOpenCategoryPopover, setAddOpenCategoryPopover] = useState(false);
   
   // Edit Item State
   const [isEditOpen, setEditOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
-
-  // Common State for Add/Edit
-  const [imageSource, setImageSource] = useState<ImageSource>('none');
-  const [imageUrl, setImageUrl] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [openCategoryPopover, setOpenCategoryPopover] = useState(false);
+  const [editItemName, setEditItemName] = useState('');
+  const [editItemDescription, setEditItemDescription] = useState('');
+  const [editItemPrice, setEditItemPrice] = useState('');
+  const [editItemCategory, setEditItemCategory] = useState('');
+  const [editImageSource, setEditImageSource] = useState<ImageSource>('none');
+  const [editImageUrl, setEditImageUrl] = useState('');
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
+  const [editOpenCategoryPopover, setEditOpenCategoryPopover] = useState(false);
   
-
   // A hardcoded catererId for demonstration without auth
   const catererId = 'demo-caterer';
 
@@ -143,16 +148,26 @@ export default function CatererPage() {
     }
   };
 
-  const resetFormState = useCallback(() => {
+  const resetAddFormState = useCallback(() => {
     setNewItemName('');
     setNewItemDescription('');
     setNewItemPrice('');
     setNewItemCategory('');
-    setEditingItem(null);
-    setImageSource('none');
-setImageUrl('');
-    setImageFile(null);
+    setAddImageSource('none');
+    setAddImageUrl('');
+    setAddImageFile(null);
     setAddOpen(false);
+  }, []);
+  
+  const resetEditFormState = useCallback(() => {
+    setEditingItem(null);
+    setEditItemName('');
+    setEditItemDescription('');
+    setEditItemPrice('');
+    setEditItemCategory('');
+    setEditImageSource('none');
+    setEditImageUrl('');
+    setEditImageFile(null);
     setEditOpen(false);
   }, []);
 
@@ -190,17 +205,17 @@ setImageUrl('');
 
       addDocumentNonBlocking(menuItemsRef, newItemData);
       toast({ title: 'Menu item added successfully!' });
-      resetFormState();
+      resetAddFormState();
     };
     
-    if (imageSource === 'url') {
-      saveItem(imageUrl);
-    } else if (imageSource === 'upload' && imageFile) {
+    if (addImageSource === 'url') {
+      saveItem(addImageUrl);
+    } else if (addImageSource === 'upload' && addImageFile) {
       const reader = new FileReader();
       reader.onloadend = () => {
         saveItem(reader.result as string);
       };
-      reader.readAsDataURL(imageFile);
+      reader.readAsDataURL(addImageFile);
     } else {
       saveItem();
     }
@@ -209,7 +224,7 @@ setImageUrl('');
   const handleEditMenuItem = () => {
     if (!firestore || !editingItem) return;
 
-    const price = parseFloat(newItemPrice);
+    const price = parseFloat(editItemPrice);
     if (isNaN(price)) {
       toast({
         variant: 'destructive',
@@ -219,7 +234,7 @@ setImageUrl('');
       return;
     }
 
-    if (!newItemCategory) {
+    if (!editItemCategory) {
       toast({
         variant: 'destructive',
         title: 'Category required',
@@ -232,46 +247,49 @@ setImageUrl('');
 
     const saveItem = (finalImageUrl?: string) => {
       const updatedData: Partial<MenuItem> = {
-        name: newItemName,
-        description: newItemDescription,
+        name: editItemName,
+        description: editItemDescription,
         price,
-        category: newItemCategory,
+        category: editItemCategory,
       };
 
-      if (imageSource !== 'none') {
+      if (editImageSource !== 'none') {
         updatedData.imageUrl = finalImageUrl;
+      } else {
+        updatedData.imageUrl = ''; // Handle removal of image
       }
 
       updateDocumentNonBlocking(itemDocRef, updatedData);
       toast({ title: 'Menu item updated successfully!' });
-      resetFormState();
+      resetEditFormState();
     };
 
-    if (imageSource === 'url') {
-      saveItem(imageUrl);
-    } else if (imageSource === 'upload' && imageFile) {
+    if (editImageSource === 'url') {
+      saveItem(editImageUrl);
+    } else if (editImageSource === 'upload' && editImageFile) {
       const reader = new FileReader();
       reader.onloadend = () => {
         saveItem(reader.result as string);
       };
-      reader.readAsDataURL(imageFile);
+      reader.readAsDataURL(editImageFile);
     } else {
-      saveItem(editingItem.imageUrl); // Keep existing image if 'none' is selected but one exists
+      // Keep existing image if 'none' is selected but one exists and imageUrl has not been cleared
+      // Or save with no image if 'none' is selected
+      saveItem(editImageSource === 'none' ? undefined : editingItem.imageUrl);
     }
   };
   
   const openEditDialog = (item: MenuItem) => {
     setEditingItem(item);
-    setNewItemName(item.name);
-    setNewItemDescription(item.description);
-    setNewItemPrice(String(item.price));
-    setNewItemCategory(item.category);
-    setImageUrl(item.imageUrl || '');
-    setImageSource(item.imageUrl ? 'url' : 'none');
-    setImageFile(null);
+    setEditItemName(item.name);
+    setEditItemDescription(item.description);
+    setEditItemPrice(String(item.price));
+    setEditItemCategory(item.category);
+    setEditImageUrl(item.imageUrl || '');
+    setEditImageSource(item.imageUrl ? 'url' : 'none');
+    setEditImageFile(null);
     setEditOpen(true);
   };
-
 
   const handleAvailabilityChange = (itemId: string, available: boolean) => {
     if (!firestore) return;
@@ -303,14 +321,14 @@ setImageUrl('');
     return category ? category.label : value;
   }
 
-  const renderFormContent = (isEditMode: boolean) => (
+  const renderAddFormContent = () => (
     <div className="grid gap-4 py-4">
       <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="name" className="text-right">
+        <Label htmlFor="add-name" className="text-right">
           Name
         </Label>
         <Input
-          id="name"
+          id="add-name"
           value={newItemName}
           onChange={(e) => setNewItemName(e.target.value)}
           className="col-span-3"
@@ -318,11 +336,11 @@ setImageUrl('');
         />
       </div>
       <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="description" className="text-right">
+        <Label htmlFor="add-description" className="text-right">
           Description
         </Label>
         <Textarea
-          id="description"
+          id="add-description"
           value={newItemDescription}
           onChange={(e) => setNewItemDescription(e.target.value)}
           className="col-span-3"
@@ -330,11 +348,11 @@ setImageUrl('');
         />
       </div>
       <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="price" className="text-right">
+        <Label htmlFor="add-price" className="text-right">
           Price (₹)
         </Label>
         <Input
-          id="price"
+          id="add-price"
           type="number"
           value={newItemPrice}
           onChange={(e) => setNewItemPrice(e.target.value)}
@@ -343,18 +361,18 @@ setImageUrl('');
         />
       </div>
       <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="category" className="text-right">
+        <Label htmlFor="add-category" className="text-right">
           Category
         </Label>
         <Popover
-          open={openCategoryPopover}
-          onOpenChange={setOpenCategoryPopover}
+          open={addOpenCategoryPopover}
+          onOpenChange={setAddOpenCategoryPopover}
         >
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               role="combobox"
-              aria-expanded={openCategoryPopover}
+              aria-expanded={addOpenCategoryPopover}
               className="col-span-3 justify-between"
             >
               {newItemCategory
@@ -383,7 +401,7 @@ setImageUrl('');
                            categories.push({ value: newCat.toLowerCase().replace(' ','-'), label: newCat });
                          }
                          setNewItemCategory(newCat.toLowerCase().replace(' ','-'));
-                         setOpenCategoryPopover(false);
+                         setAddOpenCategoryPopover(false);
                       }
                     }}
                   >
@@ -399,7 +417,7 @@ setImageUrl('');
                         setNewItemCategory(
                           currentValue === newItemCategory ? '' : currentValue
                         );
-                        setOpenCategoryPopover(false);
+                        setAddOpenCategoryPopover(false);
                       }}
                     >
                       <Check
@@ -423,41 +441,203 @@ setImageUrl('');
         <Label className="text-right pt-2">Photo</Label>
         <div className="col-span-3 space-y-4">
           <RadioGroup
-            value={imageSource}
+            value={addImageSource}
             onValueChange={(value: string) =>
-              setImageSource(value as ImageSource)
+              setAddImageSource(value as ImageSource)
             }
           >
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="none" id="r-none" />
-              <Label htmlFor="r-none">No Photo</Label>
+              <RadioGroupItem value="none" id="add-r-none" />
+              <Label htmlFor="add-r-none">No Photo</Label>
             </div>
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="upload" id="r-upload" />
-              <Label htmlFor="r-upload">Upload from computer</Label>
+              <RadioGroupItem value="upload" id="add-r-upload" />
+              <Label htmlFor="add-r-upload">Upload from computer</Label>
             </div>
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="url" id="r-url" />
-              <Label htmlFor="r-url">Add image by URL</Label>
+              <RadioGroupItem value="url" id="add-r-url" />
+              <Label htmlFor="add-r-url">Add image by URL</Label>
             </div>
           </RadioGroup>
-          {imageSource === 'upload' && (
+          {addImageSource === 'upload' && (
             <Input
               type="file"
               accept="image/*"
               onChange={(e) =>
-                setImageFile(
+                setAddImageFile(
                   e.target.files ? e.target.files[0] : null
                 )
               }
             />
           )}
-          {imageSource === 'url' && (
+          {addImageSource === 'url' && (
             <Input
               type="text"
               placeholder="https://example.com/image.jpg"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
+              value={addImageUrl}
+              onChange={(e) => setAddImageUrl(e.target.value)}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+  
+  const renderEditFormContent = () => (
+    <div className="grid gap-4 py-4">
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="edit-name" className="text-right">
+          Name
+        </Label>
+        <Input
+          id="edit-name"
+          value={editItemName}
+          onChange={(e) => setEditItemName(e.target.value)}
+          className="col-span-3"
+          placeholder="Item name"
+        />
+      </div>
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="edit-description" className="text-right">
+          Description
+        </Label>
+        <Textarea
+          id="edit-description"
+          value={editItemDescription}
+          onChange={(e) => setEditItemDescription(e.target.value)}
+          className="col-span-3"
+          placeholder="Item description"
+        />
+      </div>
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="edit-price" className="text-right">
+          Price (₹)
+        </Label>
+        <Input
+          id="edit-price"
+          type="number"
+          value={editItemPrice}
+          onChange={(e) => setEditItemPrice(e.target.value)}
+          className="col-span-3"
+          placeholder="e.g., 50.00"
+        />
+      </div>
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="edit-category" className="text-right">
+          Category
+        </Label>
+        <Popover
+          open={editOpenCategoryPopover}
+          onOpenChange={setEditOpenCategoryPopover}
+        >
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={editOpenCategoryPopover}
+              className="col-span-3 justify-between"
+            >
+              {editItemCategory
+                ? findCategoryLabel(editItemCategory)
+                : 'Select category...'}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[300px] p-0">
+            <Command
+              filter={(value, search) => {
+                if (value.toLowerCase().includes(search.toLowerCase())) return 1;
+                return 0;
+              }}
+            >
+              <CommandInput placeholder="Search or create category..." />
+              <CommandList>
+                <CommandEmpty>
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      const input = document.querySelector<HTMLInputElement>('input[cmdk-input]');
+                      if (input && input.value) {
+                         const newCat = input.value.trim();
+                         if (newCat && !categories.some(c => c.value === newCat.toLowerCase().replace(' ','-'))) {
+                           categories.push({ value: newCat.toLowerCase().replace(' ','-'), label: newCat });
+                         }
+                         setEditItemCategory(newCat.toLowerCase().replace(' ','-'));
+                         setEditOpenCategoryPopover(false);
+                      }
+                    }}
+                  >
+                    Create new category
+                  </Button>
+                </CommandEmpty>
+                <CommandGroup>
+                  {categories.map((category) => (
+                    <CommandItem
+                      key={category.value}
+                      value={category.value}
+                      onSelect={(currentValue) => {
+                        setEditItemCategory(
+                          currentValue === editItemCategory ? '' : currentValue
+                        );
+                        setEditOpenCategoryPopover(false);
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          'mr-2 h-4 w-4',
+                          editItemCategory === category.value
+                            ? 'opacity-100'
+                            : 'opacity-0'
+                        )}
+                      />
+                      {category.label}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+      </div>
+      <div className="grid grid-cols-4 items-start gap-4">
+        <Label className="text-right pt-2">Photo</Label>
+        <div className="col-span-3 space-y-4">
+          <RadioGroup
+            value={editImageSource}
+            onValueChange={(value: string) =>
+              setEditImageSource(value as ImageSource)
+            }
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="none" id="edit-r-none" />
+              <Label htmlFor="edit-r-none">No Photo</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="upload" id="edit-r-upload" />
+              <Label htmlFor="edit-r-upload">Upload from computer</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="url" id="edit-r-url" />
+              <Label htmlFor="edit-r-url">Add image by URL</Label>
+            </div>
+          </RadioGroup>
+          {editImageSource === 'upload' && (
+            <Input
+              type="file"
+              accept="image/*"
+              onChange={(e) =>
+                setEditImageFile(
+                  e.target.files ? e.target.files[0] : null
+                )
+              }
+            />
+          )}
+          {editImageSource === 'url' && (
+            <Input
+              type="text"
+              placeholder="https://example.com/image.jpg"
+              value={editImageUrl}
+              onChange={(e) => setEditImageUrl(e.target.value)}
             />
           )}
         </div>
@@ -533,7 +713,7 @@ setImageUrl('');
         <main className="flex-1 p-4 overflow-y-auto">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold">Menu Items</h1>
-            <Dialog open={isAddOpen} onOpenChange={(isOpen) => { setAddOpen(isOpen); if (!isOpen) resetFormState(); }}>
+            <Dialog open={isAddOpen} onOpenChange={(isOpen) => { setAddOpen(isOpen); if (!isOpen) resetAddFormState(); }}>
               <DialogTrigger asChild>
                 <Button>
                   <PlusCircle className="mr-2 h-4 w-4" />
@@ -544,12 +724,12 @@ setImageUrl('');
                 <DialogHeader>
                   <DialogTitle>Add New Menu Item</DialogTitle>
                 </DialogHeader>
-                {renderFormContent(false)}
+                {renderAddFormContent()}
                 <DialogFooter>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={resetFormState}
+                    onClick={resetAddFormState}
                   >
                     Cancel
                   </Button>
@@ -571,17 +751,17 @@ setImageUrl('');
           </div>
 
           {/* Edit Dialog */}
-           <Dialog open={isEditOpen} onOpenChange={(isOpen) => { setEditOpen(isOpen); if (!isOpen) resetFormState(); }}>
+           <Dialog open={isEditOpen} onOpenChange={(isOpen) => { setEditOpen(isOpen); if (!isOpen) resetEditFormState(); }}>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                   <DialogTitle>Edit Menu Item</DialogTitle>
                 </DialogHeader>
-                {renderFormContent(true)}
+                {renderEditFormContent()}
                 <DialogFooter>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={resetFormState}
+                    onClick={resetEditFormState}
                   >
                     Cancel
                   </Button>
@@ -589,10 +769,10 @@ setImageUrl('');
                     type="submit"
                     onClick={handleEditMenuItem}
                     disabled={
-                      !newItemName ||
-                      !newItemDescription ||
-                      !newItemPrice ||
-                      !newItemCategory
+                      !editItemName ||
+                      !editItemDescription ||
+                      !editItemPrice ||
+                      !editItemCategory
                     }
                   >
                     Save Changes
@@ -600,7 +780,6 @@ setImageUrl('');
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-
 
           <div className="grid gap-4">
             {menuItems && menuItems.length > 0 ? (
