@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collectionGroup, query } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 type MenuItem = {
@@ -40,26 +40,32 @@ export default function Home() {
   const [currentTime, setCurrentTime] = useState('');
   const firestore = useFirestore();
 
-  const menuItemsQuery = useMemoFirebase(() => {
+  // A hardcoded catererId for demonstration without auth
+  const catererId = 'demo-caterer';
+
+  const menuItemsRef = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collectionGroup(firestore, 'menuItems'));
+    return collection(firestore, 'caterers', catererId, 'menuItems');
   }, [firestore]);
 
-  const { data: menuItemsData, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsQuery);
+  const { data: menuItemsData, isLoading: isMenuLoading } =
+    useCollection<MenuItem>(menuItemsRef);
 
   const foodItems = useMemo(() => {
     if (!menuItemsData) return [];
     return menuItemsData.map((item, index) => {
-        const placeholder = PlaceHolderImages[index % PlaceHolderImages.length];
-        const imageSrc = item.imageUrl || placeholder?.imageUrl || "https://picsum.photos/seed/1/600/400";
-        return {
-            ...item,
-            image: imageSrc,
-            imageHint: placeholder?.imageHint || "food"
-        }
+      const placeholder = PlaceHolderImages[index % PlaceHolderImages.length];
+      const imageSrc =
+        item.imageUrl ||
+        placeholder?.imageUrl ||
+        'https://picsum.photos/seed/1/600/400';
+      return {
+        ...item,
+        image: imageSrc,
+        imageHint: placeholder?.imageHint || 'food',
+      };
     });
   }, [menuItemsData]);
-
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -127,8 +133,8 @@ export default function Home() {
               <span>{currentTime} IST</span>
             </div>
             <div className="flex items-center gap-2">
-               <Link href={isCaterer ? '/caterer' : '/'}>
-                 <Button
+              <Link href={isCaterer ? '/caterer' : '/'}>
+                <Button
                   variant="outline"
                   size="icon"
                   className={`rounded-full w-10 h-10 font-bold ${
@@ -139,7 +145,7 @@ export default function Home() {
                 >
                   {isCaterer ? 'C' : 'U'}
                 </Button>
-               </Link>
+              </Link>
               <div className="flex items-center space-x-2">
                 <Label htmlFor="role-switch">User</Label>
                 <Switch
