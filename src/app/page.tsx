@@ -34,6 +34,11 @@ type MenuItem = {
   category: string;
 };
 
+type Category = {
+    id: string;
+    name: string;
+}
+
 type CategorizedItem = MenuItem & { image: string; imageHint: string };
 
 type GroupedItems = {
@@ -60,7 +65,13 @@ export default function Home() {
     );
   }, [firestore, catererId]);
 
+  const categoriesQuery = useMemoFirebase(() => {
+      if (!firestore) return null;
+      return collection(firestore, 'caterers', catererId, 'categories');
+  }, [firestore, catererId]);
+
   const { data: menuItems, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsQuery);
+  const { data: categoriesData, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
 
   const groupedItems = useMemo((): GroupedItems => {
     if (!menuItems) {
@@ -90,19 +101,9 @@ export default function Home() {
   }, [menuItems]);
   
   const categories = useMemo(() => {
-    if (!menuItems) return [];
-    const order = ['Breakfast', 'Lunch', 'Snacks', 'Dinner', 'Main Course', 'Beverages', 'Desserts'];
-    const presentCategories = new Set(menuItems.map(item => item.category));
-    
-    return Array.from(presentCategories).sort((a, b) => {
-        const indexA = order.indexOf(a);
-        const indexB = order.indexOf(b);
-        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-        if (indexA !== -1) return -1;
-        if (indexB !== -1) return 1;
-        return a.localeCompare(b);
-      });
-  }, [menuItems]);
+    if (!categoriesData) return [];
+    return categoriesData.map(c => c.name).sort((a,b) => a.localeCompare(b));
+  }, [categoriesData]);
 
   useEffect(() => {
      if (categories && categories.length > 0 && !activeCategory) {
@@ -132,7 +133,7 @@ export default function Home() {
     router.push(checked ? '/caterer' : '/');
   };
   
-  if (isMenuLoading) {
+  if (isMenuLoading || areCategoriesLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         Loading menu...

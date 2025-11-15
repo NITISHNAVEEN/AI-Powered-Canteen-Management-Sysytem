@@ -1,5 +1,5 @@
 'use client';
-import { Clock, PlusCircle, Trash2, Edit, Check, ChevronsUpDown } from 'lucide-react';
+import { Clock, PlusCircle, Trash2, Edit } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -62,6 +62,11 @@ type MenuItem = {
   catererId: string;
 };
 
+type Category = {
+    id: string;
+    name: string;
+}
+
 type ImageSource = 'upload' | 'url' | 'none';
 
 type GroupedMenuItems = {
@@ -103,8 +108,14 @@ export default function CatererPage() {
     return collection(firestore, 'caterers', catererId, 'menuItems');
   }, [firestore, catererId]);
 
+  const categoriesRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'caterers', catererId, 'categories');
+  }, [firestore, catererId]);
+
   const { data: menuItems, isLoading: isMenuLoading } =
     useCollection<MenuItem>(menuItemsRef);
+  const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesRef);
 
   const groupedMenuItems = useMemo(() => {
     if (!menuItems) return {};
@@ -119,20 +130,9 @@ export default function CatererPage() {
   }, [menuItems]);
   
   const categoryOrder = useMemo(() => {
-      if (!menuItems) return [];
-      const order = ['Breakfast', 'Lunch', 'Snacks', 'Dinner', 'Main Course', 'Beverages', 'Desserts'];
-      const presentCategories = new Set(menuItems.map(item => item.category));
-      
-      const sorted = Array.from(presentCategories).sort((a, b) => {
-        const indexA = order.indexOf(a);
-        const indexB = order.indexOf(b);
-        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-        if (indexA !== -1) return -1;
-        if (indexB !== -1) return 1;
-        return a.localeCompare(b);
-      });
-      return sorted;
-  }, [menuItems]);
+      if (!categories) return [];
+      return categories.map(c => c.name).sort((a,b) => a.localeCompare(b));
+  }, [categories]);
 
 
   useEffect(() => {
@@ -144,7 +144,7 @@ export default function CatererPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Settings'];
+  const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Categories', 'Settings'];
 
   const handleRoleChange = (checked: boolean) => {
     router.push(checked ? '/caterer' : '/');
@@ -172,7 +172,7 @@ export default function CatererPage() {
   }, []);
 
   const handleAddMenuItem = async () => {
-    if (!menuItemsRef) return;
+    if (!menuItemsRef || !categories) return;
     const price = parseFloat(newItemPrice);
     if (isNaN(price)) {
       toast({
@@ -185,9 +185,11 @@ export default function CatererPage() {
 
     let category = 'Uncategorized';
     try {
+      const categoryNames = categories.map(c => c.name);
       category = await getItemCategory({
         name: newItemName,
         description: newItemDescription,
+        categories: categoryNames,
       });
     } catch (error) {
       console.error("Failed to get category from AI:", error);
@@ -230,7 +232,7 @@ export default function CatererPage() {
   };
 
   const handleEditMenuItem = async () => {
-    if (!firestore || !editingItem) return;
+    if (!firestore || !editingItem || !categories) return;
 
     const price = parseFloat(editItemPrice);
     if (isNaN(price)) {
@@ -246,9 +248,11 @@ export default function CatererPage() {
     // Recategorize if name or description changed
     if (editItemName !== editingItem.name || editItemDescription !== editingItem.description) {
       try {
+        const categoryNames = categories.map(c => c.name);
         category = await getItemCategory({
           name: editItemName,
           description: editItemDescription,
+          categories: categoryNames,
         });
       } catch (error) {
         console.error("Failed to get category from AI:", error);
@@ -502,7 +506,7 @@ export default function CatererPage() {
     </div>
   );
 
-  if (isMenuLoading) {
+  if (isMenuLoading || areCategoriesLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         Loading...

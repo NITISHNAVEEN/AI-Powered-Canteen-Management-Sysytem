@@ -140,6 +140,26 @@
         "available",
         "category"
       ]
+    },
+    "Category": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Category",
+      "type": "object",
+      "description": "Represents a menu category created by a caterer.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Category entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the category (e.g., 'Breakfast', 'Specialty Pizzas')."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
     }
   },
   "auth": {
@@ -235,6 +255,26 @@
             {
               "name": "orderId",
               "description": "The unique identifier for the order."
+            }
+          ]
+        }
+      },
+      {
+        "path": "caterers/{catererId}/categories/{categoryId}",
+        "definition": {
+          "entityName": "Category",
+          "schema": {
+            "$ref": "#/backend/entities/Category"
+          },
+          "description": "Stores the custom menu categories created by a specific caterer.",
+          "params": [
+            {
+              "name": "catererId",
+              "description": "The unique identifier for the caterer."
+            },
+            {
+              "name": "categoryId",
+              "description": "The unique identifier for the category."
             }
           ]
         }
