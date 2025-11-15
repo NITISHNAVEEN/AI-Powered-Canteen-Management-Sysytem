@@ -61,7 +61,7 @@ export default function Home() {
   const { groupedItems, categories } = useMemo(() => {
     if (!menuItemsData) return { groupedItems: {}, categories: [] };
     
-    const uniqueCategories = [...new Set(menuItemsData.map(item => item.category))];
+    const uniqueCategories = [...new Set(menuItemsData.map(item => item.category).filter(Boolean) as string[])];
     const categoryLabels = uniqueCategories.map(c => ({
         value: c,
         label: c.charAt(0).toUpperCase() + c.slice(1).replace('-', ' ')
