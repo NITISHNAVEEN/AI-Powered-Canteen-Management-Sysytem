@@ -48,6 +48,13 @@ import { collection, doc } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 type MenuItem = {
   id: string;
@@ -70,6 +77,7 @@ export default function CatererPage() {
   const [newItemName, setNewItemName] = useState('');
   const [newItemDescription, setNewItemDescription] = useState('');
   const [newItemPrice, setNewItemPrice] = useState('');
+  const [newItemCategory, setNewItemCategory] = useState('');
   const [isAddOpen, setAddOpen] = useState(false);
 
   const [imageSource, setImageSource] = useState<ImageSource>('none');
@@ -110,6 +118,7 @@ export default function CatererPage() {
     setNewItemName('');
     setNewItemDescription('');
     setNewItemPrice('');
+    setNewItemCategory('');
     setImageSource('none');
     setImageUrl('');
     setImageFile(null);
@@ -128,6 +137,15 @@ export default function CatererPage() {
       return;
     }
 
+    if (!newItemCategory) {
+      toast({
+        variant: 'destructive',
+        title: 'Category required',
+        description: 'Please select a category for the menu item.',
+      });
+      return;
+    }
+
     const saveItem = (finalImageUrl?: string) => {
       const newItem: any = {
         catererId: catererId,
@@ -135,6 +153,7 @@ export default function CatererPage() {
         description: newItemDescription,
         price,
         available: true,
+        category: newItemCategory,
       };
 
       if (finalImageUrl) {
@@ -259,7 +278,7 @@ export default function CatererPage() {
                   Add Menu Item
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                   <DialogTitle>Add New Menu Item</DialogTitle>
                 </DialogHeader>
@@ -300,6 +319,25 @@ export default function CatererPage() {
                       className="col-span-3"
                       placeholder="e.g., 50.00"
                     />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="category" className="text-right">
+                      Category
+                    </Label>
+                    <Select
+                      onValueChange={setNewItemCategory}
+                      value={newItemCategory}
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="breakfast">Breakfast</SelectItem>
+                        <SelectItem value="lunch">Lunch</SelectItem>
+                        <SelectItem value="snacks">Snacks</SelectItem>
+                        <SelectItem value="dinner">Dinner</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="grid grid-cols-4 items-start gap-4">
                     <Label className="text-right pt-2">Photo</Label>
@@ -357,7 +395,10 @@ export default function CatererPage() {
                     type="submit"
                     onClick={handleAddMenuItem}
                     disabled={
-                      !newItemName || !newItemDescription || !newItemPrice
+                      !newItemName ||
+                      !newItemDescription ||
+                      !newItemPrice ||
+                      !newItemCategory
                     }
                   >
                     Save Item

@@ -125,6 +125,11 @@
         "imageUrl": {
           "type": "string",
           "description": "URL or data URI of the menu item's image."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the menu item.",
+          "enum": ["breakfast", "lunch", "snacks", "dinner"]
         }
       },
       "required": [
