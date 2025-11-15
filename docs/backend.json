@@ -49,11 +49,16 @@
         "username": {
           "type": "string",
           "description": "The caterer's username (e.g., 'admin')."
+        },
+        "isCanteenOpen": {
+          "type": "boolean",
+          "description": "Indicates whether the canteen is open for orders."
         }
       },
       "required": [
         "id",
-        "username"
+        "username",
+        "isCanteenOpen"
       ]
     },
     "Order": {

@@ -19,8 +19,8 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, query, where, doc } from 'firebase/firestore';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { getRecommendedItems, RecommendedItemsOutput } from '@/ai/flows/get-recommended-items-flow';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -42,6 +42,12 @@ type MenuItem = {
 type Category = {
     id: string;
     name: string;
+}
+
+type Caterer = {
+    id: string;
+    username: string;
+    isCanteenOpen?: boolean;
 }
 
 type CategorizedItem = MenuItem & { image: string; imageHint: string };
@@ -66,6 +72,11 @@ export default function Home() {
   // Hardcoded catererId for demonstration
   const catererId = 'demo-caterer';
 
+  const catererRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'caterers', catererId);
+  }, [firestore, catererId]);
+
   const menuItemsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
@@ -79,8 +90,11 @@ export default function Home() {
       return collection(firestore, 'caterers', catererId, 'categories');
   }, [firestore, catererId]);
 
+  const { data: caterer, isLoading: isCatererLoading } = useDoc<Caterer>(catererRef);
   const { data: menuItems, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsQuery);
   const { data: categoriesData, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
+
+  const isCanteenOpen = caterer?.isCanteenOpen ?? false;
 
   const groupedItems = useMemo((): GroupedItems => {
     if (!menuItems) {
@@ -149,7 +163,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (menuItems && menuItems.length > 0 && !recommendationsFetched) {
+    if (isCanteenOpen && menuItems && menuItems.length > 0 && !recommendationsFetched) {
       const fetchRecommendations = async () => {
         setAreRecommendationsLoading(true);
         try {
@@ -171,7 +185,7 @@ export default function Home() {
       // If there are no menu items, or already fetched, don't show loading state
       setAreRecommendationsLoading(false);
     }
-  }, [menuItems, isMenuLoading, recommendationsFetched]);
+  }, [menuItems, isMenuLoading, recommendationsFetched, isCanteenOpen]);
 
 
   const handleCategoryClick = (categoryValue: string) => {
@@ -185,7 +199,7 @@ export default function Home() {
     router.push(checked ? '/caterer' : '/');
   };
   
-  if (isMenuLoading || areCategoriesLoading) {
+  if (isMenuLoading || areCategoriesLoading || isCatererLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         Loading menu...
@@ -205,7 +219,7 @@ export default function Home() {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            {categoriesInOrder.map((cat) => (
+            {isCanteenOpen && categoriesInOrder.map((cat) => (
               <SidebarMenuItem key={cat}>
                 <SidebarMenuButton 
                     onClick={() => handleCategoryClick(cat)}
@@ -253,133 +267,146 @@ export default function Home() {
         </header>
 
         <main className="flex-1 p-4 overflow-y-auto">
-          {/* Recommendations Section */}
-          {areRecommendationsLoading && (
-            <div className="mb-8">
-              <Skeleton className="h-8 w-1/3 mb-4" />
-              <div className="grid grid-cols-1 gap-4">
-                {[...Array(3)].map((_, i) => (
-                  <Card key={i}>
-                    <CardContent className="flex items-center gap-4 p-4">
-                      <Skeleton className="w-24 h-24 rounded-md" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-5 w-3/4" />
-                        <Skeleton className="h-4 w-1/2" />
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <Skeleton className="h-5 w-12" />
-                        <Skeleton className="h-9 w-20" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {!areRecommendationsLoading && recommendedItems.length > 0 && recommendations && (
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold mb-2">Recommended for you</h2>
-              <p className="text-muted-foreground mb-4">{recommendations.recommendationReason}</p>
-              <div className="grid grid-cols-1 gap-4">
-                {recommendedItems.map((item) => {
-                  const categorizedItem = groupedItems[item.category]?.find(gi => gi.id === item.id);
-                  if (!categorizedItem) return null;
-                  return (
-                    <Card key={item.id} className={!item.available ? 'opacity-50 pointer-events-none' : ''}>
-                      <CardContent className="flex items-center gap-4 p-4">
-                        <Image
-                          src={categorizedItem.image}
-                          alt={item.name}
-                          width={96}
-                          height={96}
-                          className="object-cover w-24 h-24 rounded-md"
-                          data-ai-hint={categorizedItem.imageHint}
-                        />
-                        <div className="flex-1">
-                          <h3 className="text-lg font-bold">{item.name}</h3>
-                          <p className="text-sm text-muted-foreground">{item.description}</p>
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <p className="font-semibold">₹{item.price.toFixed(2)}</p>
-                          <Button onClick={() => addToCart(item)} disabled={!item.available}>Add</Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-
-           {categoriesInOrder && categoriesInOrder.length > 0 ? (
-            categoriesInOrder.map(category => (
-                groupedItems[category] && groupedItems[category].length > 0 && (
-                    <div 
-                        key={category} 
-                        ref={el => sectionRefs.current[category] = el} 
-                        className="mb-8 scroll-mt-20" // scroll-mt adds top margin for scrollIntoView
-                    >
-                        <h2 className="text-2xl font-bold mb-4">{category}</h2>
-                        <div className="grid grid-cols-1 gap-4">
-                        {groupedItems[category].map((item) => (
-                            <Card key={item.id} className={!item.available ? 'opacity-50 pointer-events-none' : ''}>
-                            <CardContent className="flex items-center gap-4 p-4">
-                                <Image
-                                src={item.image}
-                                alt={item.name}
-                                width={96}
-                                height={96}
-                                className="object-cover w-24 h-24 rounded-md"
-                                data-ai-hint={item.imageHint}
-                                />
-                                <div className="flex-1">
-                                <div className="flex items-baseline gap-2">
-                                    <h3 className="text-lg font-bold">{item.name}</h3>
-                                </div>
-                                <p className="text-sm text-muted-foreground">
-                                    {item.description}
-                                </p>
-                                </div>
-                                <div className="flex flex-col items-end gap-2">
-                                <p className="font-semibold">₹{item.price.toFixed(2)}</p>
-                                <Button onClick={() => addToCart(item)} disabled={!item.available}>
-                                    Add
-                                </Button>
-                                </div>
-                            </CardContent>
-                            </Card>
-                        ))}
-                        </div>
-                    </div>
-                )
-            ))
-          ) : (
+          {!isCanteenOpen ? (
             <Card>
-              <CardContent className="p-4 text-center">
-                No food items available at the moment.
+              <CardContent className="p-12 text-center">
+                <h2 className="text-2xl font-bold mb-2">Canteen is currently closed.</h2>
+                <p className="text-muted-foreground">Please check back later.</p>
               </CardContent>
             </Card>
+          ) : (
+            <>
+              {/* Recommendations Section */}
+              {areRecommendationsLoading && (
+                <div className="mb-8">
+                  <Skeleton className="h-8 w-1/3 mb-4" />
+                  <div className="grid grid-cols-1 gap-4">
+                    {[...Array(3)].map((_, i) => (
+                      <Card key={i}>
+                        <CardContent className="flex items-center gap-4 p-4">
+                          <Skeleton className="w-24 h-24 rounded-md" />
+                          <div className="flex-1 space-y-2">
+                            <Skeleton className="h-5 w-3/4" />
+                            <Skeleton className="h-4 w-1/2" />
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <Skeleton className="h-5 w-12" />
+                            <Skeleton className="h-9 w-20" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!areRecommendationsLoading && recommendedItems.length > 0 && recommendations && (
+                <div className="mb-8">
+                  <h2 className="text-2xl font-bold mb-2">Recommended for you</h2>
+                  <p className="text-muted-foreground mb-4">{recommendations.recommendationReason}</p>
+                  <div className="grid grid-cols-1 gap-4">
+                    {recommendedItems.map((item) => {
+                      const categorizedItem = groupedItems[item.category]?.find(gi => gi.id === item.id);
+                      if (!categorizedItem) return null;
+                      return (
+                        <Card key={item.id} className={!item.available ? 'opacity-50 pointer-events-none' : ''}>
+                          <CardContent className="flex items-center gap-4 p-4">
+                            <Image
+                              src={categorizedItem.image}
+                              alt={item.name}
+                              width={96}
+                              height={96}
+                              className="object-cover w-24 h-24 rounded-md"
+                              data-ai-hint={categorizedItem.imageHint}
+                            />
+                            <div className="flex-1">
+                              <h3 className="text-lg font-bold">{item.name}</h3>
+                              <p className="text-sm text-muted-foreground">{item.description}</p>
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
+                              <p className="font-semibold">₹{item.price.toFixed(2)}</p>
+                              <Button onClick={() => addToCart(item)} disabled={!item.available}>Add</Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+
+              {categoriesInOrder && categoriesInOrder.length > 0 ? (
+                categoriesInOrder.map(category => (
+                    groupedItems[category] && groupedItems[category].length > 0 && (
+                        <div 
+                            key={category} 
+                            ref={el => sectionRefs.current[category] = el} 
+                            className="mb-8 scroll-mt-20" // scroll-mt adds top margin for scrollIntoView
+                        >
+                            <h2 className="text-2xl font-bold mb-4">{category}</h2>
+                            <div className="grid grid-cols-1 gap-4">
+                            {groupedItems[category].map((item) => (
+                                <Card key={item.id} className={!item.available ? 'opacity-50 pointer-events-none' : ''}>
+                                <CardContent className="flex items-center gap-4 p-4">
+                                    <Image
+                                    src={item.image}
+                                    alt={item.name}
+                                    width={96}
+                                    height={96}
+                                    className="object-cover w-24 h-24 rounded-md"
+                                    data-ai-hint={item.imageHint}
+                                    />
+                                    <div className="flex-1">
+                                    <div className="flex items-baseline gap-2">
+                                        <h3 className="text-lg font-bold">{item.name}</h3>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">
+                                        {item.description}
+                                    </p>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-2">
+                                    <p className="font-semibold">₹{item.price.toFixed(2)}</p>
+                                    <Button onClick={() => addToCart(item)} disabled={!item.available}>
+                                        Add
+                                    </Button>
+                                    </div>
+                                </CardContent>
+                                </Card>
+                            ))}
+                            </div>
+                        </div>
+                    )
+                ))
+              ) : (
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    No food items available at the moment.
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
         </main>
-
-        <footer className="sticky bottom-0 flex items-center justify-between p-4 bg-background border-t">
-          <Button variant="outline" asChild>
-            <Link href="/filters">Use filters</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/checkout" className="flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5"/>
-              <span>Checkout</span>
-               {cartItems.length > 0 && (
-                <Badge variant="secondary" className="rounded-full">
-                  {cartItems.reduce((acc, item) => acc + item.quantity, 0)}
-                </Badge>
-              )}
-            </Link>
-          </Button>
-        </footer>
+        
+        {isCanteenOpen && (
+          <footer className="sticky bottom-0 flex items-center justify-between p-4 bg-background border-t">
+            <Button variant="outline" asChild>
+              <Link href="/filters">Use filters</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/checkout" className="flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5"/>
+                <span>Checkout</span>
+                {cartItems.length > 0 && (
+                  <Badge variant="secondary" className="rounded-full">
+                    {cartItems.reduce((acc, item) => acc + item.quantity, 0)}
+                  </Badge>
+                )}
+              </Link>
+            </Button>
+          </footer>
+        )}
       </SidebarInset>
     </SidebarProvider>
   );
