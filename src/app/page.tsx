@@ -53,6 +53,7 @@ export default function Home() {
   const firestore = useFirestore();
   const [activeCategory, setActiveCategory] = useState<string>('');
   const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const observer = useRef<IntersectionObserver | null>(null);
 
   // Hardcoded catererId for demonstration
   const catererId = 'demo-caterer';
@@ -127,10 +128,47 @@ export default function Home() {
 
 
   useEffect(() => {
-     if (categoriesInOrder && categoriesInOrder.length > 0 && !activeCategory) {
-        setActiveCategory(categoriesInOrder[0]);
-     }
-  }, [categoriesInOrder, activeCategory]);
+    // Disconnect previous observer
+    if (observer.current) {
+      observer.current.disconnect();
+    }
+
+    // Create a new observer
+    observer.current = new IntersectionObserver(
+      (entries) => {
+        // Find the entry that is most visible in the viewport
+        const visibleEntry = entries.find((entry) => entry.isIntersecting);
+        if (visibleEntry) {
+          setActiveCategory(visibleEntry.target.id);
+        }
+      },
+      {
+        rootMargin: '-20% 0px -80% 0px', // Highlights when the section is in the upper part of the viewport
+        threshold: 0,
+      }
+    );
+
+    const currentObserver = observer.current;
+
+    // Observe all the sections
+    Object.values(sectionRefs.current).forEach((section) => {
+      if (section) {
+        currentObserver.observe(section);
+      }
+    });
+
+    // Set initial active category if not set
+    if (!activeCategory && categoriesInOrder.length > 0) {
+      setActiveCategory(categoriesInOrder[0]);
+    }
+
+    // Cleanup function
+    return () => {
+      if (currentObserver) {
+        currentObserver.disconnect();
+      }
+    };
+  }, [categoriesInOrder, menuItems]); // Re-run when items change
 
 
   useEffect(() => {
@@ -143,11 +181,11 @@ export default function Home() {
   }, []);
 
   const handleCategoryClick = (categoryValue: string) => {
-    setActiveCategory(categoryValue);
     sectionRefs.current[categoryValue]?.scrollIntoView({
       behavior: 'smooth',
       block: 'start',
     });
+    // The observer will handle setting the active category
   };
 
   const handleRoleChange = (checked: boolean) => {
@@ -226,7 +264,12 @@ export default function Home() {
            {categoriesInOrder && categoriesInOrder.length > 0 ? (
             categoriesInOrder.map(category => (
                 groupedItems[category] && groupedItems[category].length > 0 && (
-                    <div key={category} ref={el => sectionRefs.current[category] = el} className="mb-8">
+                    <div 
+                        key={category} 
+                        id={category}
+                        ref={el => sectionRefs.current[category] = el} 
+                        className="mb-8 scroll-mt-20" // scroll-mt adds top margin for scrollIntoView
+                    >
                         <h2 className="text-2xl font-bold mb-4">{category}</h2>
                         <div className="grid grid-cols-1 gap-4">
                         {groupedItems[category].map((item) => (
