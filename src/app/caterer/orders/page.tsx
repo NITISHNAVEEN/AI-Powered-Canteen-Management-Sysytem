@@ -164,7 +164,9 @@ export default function OrdersPage() {
       </Sidebar>
       <SidebarInset>
         <header className="flex items-center justify-between p-4 border-b">
-          <SidebarTrigger />
+          <div className="flex items-center gap-4">
+            <SidebarTrigger />
+          </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 p-2 border rounded-md">
               <Clock className="w-5 h-5" />
