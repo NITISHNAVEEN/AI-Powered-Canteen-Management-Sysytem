@@ -20,9 +20,8 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, collectionGroup } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { categorizeMenu, CategorizeMenuOutput } from '@/ai/flows/categorize-menu-flow';
 
 type MenuItem = {
   id: string;
@@ -37,7 +36,7 @@ type MenuItem = {
 
 type CategorizedItem = MenuItem & { image: string; imageHint: string };
 
-type AICategorizedItems = {
+type GroupedItems = {
   [categoryKey: string]: {
     label: string;
     items: CategorizedItem[];
@@ -53,77 +52,36 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState<string>('');
   const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
-  const [aiCategories, setAICategories] = useState<CategorizeMenuOutput>({});
-  const [isCategorizing, setIsCategorizing] = useState(true);
+  // Hardcoded catererId for demonstration
+  const catererId = 'demo-caterer';
 
   const menuItemsRef = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collectionGroup(firestore, 'menuItems');
-  }, [firestore]);
+    return collection(firestore, 'caterers', catererId, 'menuItems');
+  }, [firestore, catererId]);
 
   const { data: menuItemsData, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsRef);
 
-  useEffect(() => {
-    const categorize = async () => {
-      if (!menuItemsData || menuItemsData.length === 0) {
-        setAICategories({});
-        setIsCategorizing(false);
-        return;
-      }
-      setIsCategorizing(true);
-      try {
-        const itemsToCategorize = menuItemsData.map(({ id, name, description }) => ({
-          id,
-          name,
-          description,
-        }));
-        const result = await categorizeMenu(itemsToCategorize);
-        setAICategories(result);
-        if (result && Object.keys(result).length > 0) {
-          setActiveCategory(Object.keys(result)[0]);
-        }
-      } catch (error) {
-        console.error("Failed to categorize menu items:", error);
-        // Fallback to simple grouping if AI fails
-        const fallbackCategories: CategorizeMenuOutput = {};
-        menuItemsData.forEach(item => {
-            const catKey = item.category || 'uncategorized';
-            if (!fallbackCategories[catKey]) {
-                fallbackCategories[catKey] = {
-                    label: catKey.charAt(0).toUpperCase() + catKey.slice(1).replace(/-/g, ' '),
-                    items: []
-                };
-            }
-            fallbackCategories[catKey].items.push(item.id);
-        });
-        setAICategories(fallbackCategories);
-      } finally {
-        setIsCategorizing(false);
-      }
-    };
-    categorize();
-  }, [menuItemsData]);
-
-
-  const groupedItems = useMemo((): AICategorizedItems => {
-    if (!menuItemsData || Object.keys(aiCategories).length === 0) {
+  const groupedItems = useMemo((): GroupedItems => {
+    if (!menuItemsData) {
       return {};
     }
 
-    const itemsById = new Map(menuItemsData.map(item => [item.id, item]));
-    const result: AICategorizedItems = {};
+    const filteredItems = menuItemsData.filter(item => item.category);
 
-    for (const categoryKey in aiCategories) {
-      const categoryData = aiCategories[categoryKey];
+    const result: GroupedItems = {};
+
+    const uniqueCategories = [...new Set(filteredItems.map(item => item.category))];
+
+    uniqueCategories.forEach(categoryKey => {
+      const categoryLabel = categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1).replace(/-/g, ' ');
       result[categoryKey] = {
-        label: categoryData.label,
-        items: categoryData.items
-          .map(itemId => {
-            const item = itemsById.get(itemId);
-            if (!item) return null;
-
+        label: categoryLabel,
+        items: filteredItems
+          .filter(item => item.category === categoryKey)
+          .map(item => {
             const placeholder =
-              PlaceHolderImages.find(p => p.id === (item.category || categoryKey)) ||
+              PlaceHolderImages.find(p => p.id === item.category) ||
               PlaceHolderImages[0];
             const imageSrc = item.imageUrl || placeholder.imageUrl || 'https://picsum.photos/seed/1/600/400';
 
@@ -132,12 +90,18 @@ export default function Home() {
               image: imageSrc,
               imageHint: placeholder?.imageHint || 'food',
             };
-          })
-          .filter((item): item is CategorizedItem => item !== null),
+          }),
       };
-    }
+    });
+
     return result;
-  }, [menuItemsData, aiCategories]);
+  }, [menuItemsData]);
+
+  useEffect(() => {
+     if (Object.keys(groupedItems).length > 0 && !activeCategory) {
+        setActiveCategory(Object.keys(groupedItems)[0]);
+     }
+  }, [groupedItems, activeCategory]);
 
 
   useEffect(() => {
@@ -165,12 +129,10 @@ export default function Home() {
     }
   };
   
-  const isLoading = isMenuLoading || isCategorizing;
-
-  if (isLoading) {
+  if (isMenuLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        Loading and categorizing menu...
+        Loading menu...
       </div>
     );
   }

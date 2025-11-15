@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import {
@@ -72,20 +72,20 @@ type MenuItem = {
 
 type ImageSource = 'upload' | 'url' | 'none';
 
-const sidebarMenuItems = [
-  'Recommendations',
-  'Paratha',
-  'Burger',
-  'Rolls',
-  'Biryani',
-  'Quick Snacks',
-  'Main Course',
+type GroupedMenuItems = {
+  [category: string]: MenuItem[];
+};
+
+const defaultCategories = [
+    { value: 'recommendations', label: 'Recommendations' },
+    { value: 'paratha', label: 'Paratha' },
+    { value: 'burger', label: 'Burger' },
+    { value: 'rolls', label: 'Rolls' },
+    { value: 'biryani', label: 'Biryani' },
+    { value: 'quick-snacks', label: 'Quick Snacks' },
+    { value: 'main-course', label: 'Main Course' },
 ];
 
-const categories = sidebarMenuItems.map((item) => ({
-  value: item.toLowerCase().replace(' ', '-'),
-  label: item,
-}));
 
 export default function CatererPage() {
   const router = useRouter();
@@ -94,6 +94,7 @@ export default function CatererPage() {
   const firestore = useFirestore();
   const [currentTime, setCurrentTime] = useState('');
   const { toast } = useToast();
+  const [categories, setCategories] = useState(defaultCategories);
 
   // Add Item State
   const [isAddOpen, setAddOpen] = useState(false);
@@ -128,6 +129,36 @@ export default function CatererPage() {
 
   const { data: menuItems, isLoading: isMenuLoading } =
     useCollection<MenuItem>(menuItemsRef);
+
+  const groupedMenuItems = useMemo(() => {
+    if (!menuItems) return {};
+    return menuItems.reduce((acc, item) => {
+      const category = item.category || 'uncategorized';
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(item);
+      return acc;
+    }, {} as GroupedMenuItems);
+  }, [menuItems]);
+
+  useEffect(() => {
+    if (menuItems) {
+      const uniqueCategories = [
+        ...new Set(menuItems.map(item => item.category).filter(Boolean)),
+      ];
+      const newCategories = uniqueCategories.map(c => ({
+        value: c,
+        label: c.charAt(0).toUpperCase() + c.slice(1).replace(/-/g, ' '),
+      }));
+
+      // Combine with default and remove duplicates
+      const allCategories = [...defaultCategories, ...newCategories];
+      const categoryMap = new Map(allCategories.map(c => [c.value, c]));
+      setCategories(Array.from(categoryMap.values()));
+    }
+  }, [menuItems]);
+
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -252,11 +283,11 @@ export default function CatererPage() {
         price,
         category: editItemCategory,
       };
-
+      
       if (editImageSource !== 'none') {
         updatedData.imageUrl = finalImageUrl;
-      } else {
-        updatedData.imageUrl = ''; // Handle removal of image
+      } else if (editImageSource === 'none') {
+         updatedData.imageUrl = '';
       }
 
       updateDocumentNonBlocking(itemDocRef, updatedData);
@@ -273,9 +304,7 @@ export default function CatererPage() {
       };
       reader.readAsDataURL(editImageFile);
     } else {
-      // Keep existing image if 'none' is selected but one exists and imageUrl has not been cleared
-      // Or save with no image if 'none' is selected
-      saveItem(editImageSource === 'none' ? editingItem.imageUrl : editingItem.imageUrl);
+      saveItem(editingItem.imageUrl);
     }
   };
   
@@ -384,7 +413,8 @@ export default function CatererPage() {
           <PopoverContent className="w-[300px] p-0">
             <Command
               filter={(value, search) => {
-                if (value.toLowerCase().includes(search.toLowerCase())) return 1;
+                const label = findCategoryLabel(value);
+                if (label.toLowerCase().includes(search.toLowerCase())) return 1;
                 return 0;
               }}
             >
@@ -396,16 +426,17 @@ export default function CatererPage() {
                     onClick={() => {
                       const input = document.querySelector<HTMLInputElement>('input[cmdk-input]');
                       if (input && input.value) {
-                         const newCat = input.value.trim();
-                         if (newCat && !categories.some(c => c.value === newCat.toLowerCase().replace(' ','-'))) {
-                           categories.push({ value: newCat.toLowerCase().replace(' ','-'), label: newCat });
+                         const newCatLabel = input.value.trim();
+                         const newCatValue = newCatLabel.toLowerCase().replace(/\s+/g, '-');
+                         if (newCatLabel && !categories.some(c => c.value === newCatValue)) {
+                           setCategories(prev => [...prev, { value: newCatValue, label: newCatLabel }]);
                          }
-                         setNewItemCategory(newCat.toLowerCase().replace(' ','-'));
+                         setNewItemCategory(newCatValue);
                          setAddOpenCategoryPopover(false);
                       }
                     }}
                   >
-                    Create new category
+                    Create "{document.querySelector<HTMLInputElement>('input[cmdk-input]')?.value}"
                   </Button>
                 </CommandEmpty>
                 <CommandGroup>
@@ -546,28 +577,30 @@ export default function CatererPage() {
           <PopoverContent className="w-[300px] p-0">
             <Command
               filter={(value, search) => {
-                if (value.toLowerCase().includes(search.toLowerCase())) return 1;
+                const label = findCategoryLabel(value);
+                if (label.toLowerCase().includes(search.toLowerCase())) return 1;
                 return 0;
               }}
             >
               <CommandInput placeholder="Search or create category..." />
               <CommandList>
                 <CommandEmpty>
-                  <Button
+                   <Button
                     className="w-full"
                     onClick={() => {
                       const input = document.querySelector<HTMLInputElement>('input[cmdk-input]');
                       if (input && input.value) {
-                         const newCat = input.value.trim();
-                         if (newCat && !categories.some(c => c.value === newCat.toLowerCase().replace(' ','-'))) {
-                           categories.push({ value: newCat.toLowerCase().replace(' ','-'), label: newCat });
+                         const newCatLabel = input.value.trim();
+                         const newCatValue = newCatLabel.toLowerCase().replace(/\s+/g, '-');
+                         if (newCatLabel && !categories.some(c => c.value === newCatValue)) {
+                           setCategories(prev => [...prev, { value: newCatValue, label: newCatLabel }]);
                          }
-                         setEditItemCategory(newCat.toLowerCase().replace(' ','-'));
+                         setEditItemCategory(newCatValue);
                          setEditOpenCategoryPopover(false);
                       }
                     }}
                   >
-                    Create new category
+                    Create "{document.querySelector<HTMLInputElement>('input[cmdk-input]')?.value}"
                   </Button>
                 </CommandEmpty>
                 <CommandGroup>
@@ -610,7 +643,7 @@ export default function CatererPage() {
           >
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="none" id="edit-r-none" />
-              <Label htmlFor="edit-r-none">No Photo</Label>
+              <Label htmlFor="edit-r-none">Remove Photo</Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="upload" id="edit-r-upload" />
@@ -652,6 +685,8 @@ export default function CatererPage() {
       </div>
     );
   }
+
+  const categoryOrder = Object.keys(groupedMenuItems);
 
   return (
     <SidebarProvider>
@@ -786,73 +821,80 @@ export default function CatererPage() {
             </Dialog>
 
           <div className="grid gap-4">
-            {menuItems && menuItems.length > 0 ? (
-              menuItems.map((item) => (
-                <Card key={item.id}>
-                  <CardContent className="flex items-center gap-4 p-4">
-                    {item.imageUrl && (
-                       <Image
-                         src={item.imageUrl}
-                         alt={item.name}
-                         width={64}
-                         height={64}
-                         className="w-16 h-16 rounded-md object-cover"
-                       />
-                    )}
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold">{item.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {item.description}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <p className="font-semibold">₹{item.price.toFixed(2)}</p>
-                      <div className="flex items-center gap-2">
-                        <Label
-                          htmlFor={`available-${item.id}`}
-                          className="text-sm"
-                        >
-                          {item.available ? 'Available' : 'Unavailable'}
-                        </Label>
-                        <Switch
-                          id={`available-${item.id}`}
-                          checked={item.available}
-                          onCheckedChange={(checked) =>
-                            handleAvailabilityChange(item.id, checked)
-                          }
-                        />
-                      </div>
-                    </div>
-                     <div className="flex flex-col gap-2">
-                      <Button variant="outline" size="icon" onClick={() => openEditDialog(item)}>
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="destructive" size="icon">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action cannot be undone. This will permanently remove the item from your menu.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteMenuItem(item.id)}
-                            >
-                              Remove
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </CardContent>
-                </Card>
+             {menuItems && menuItems.length > 0 ? (
+              categoryOrder.map((category) => (
+                <div key={category}>
+                  <h2 className="text-xl font-bold my-4">{findCategoryLabel(category)}</h2>
+                  <div className="grid gap-4">
+                    {groupedMenuItems[category].map((item) => (
+                      <Card key={item.id}>
+                        <CardContent className="flex items-center gap-4 p-4">
+                          {item.imageUrl && (
+                            <Image
+                              src={item.imageUrl}
+                              alt={item.name}
+                              width={64}
+                              height={64}
+                              className="w-16 h-16 rounded-md object-cover"
+                            />
+                          )}
+                          <div className="flex-1">
+                            <h3 className="text-lg font-bold">{item.name}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {item.description}
+                            </p>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <p className="font-semibold">₹{item.price.toFixed(2)}</p>
+                            <div className="flex items-center gap-2">
+                              <Label
+                                htmlFor={`available-${item.id}`}
+                                className="text-sm"
+                              >
+                                {item.available ? 'Available' : 'Unavailable'}
+                              </Label>
+                              <Switch
+                                id={`available-${item.id}`}
+                                checked={item.available}
+                                onCheckedChange={(checked) =>
+                                  handleAvailabilityChange(item.id, checked)
+                                }
+                              />
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Button variant="outline" size="icon" onClick={() => openEditDialog(item)}>
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="icon">
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently remove the item from your menu.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeleteMenuItem(item.id)}
+                                  >
+                                    Remove
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
               ))
             ) : (
               <Card>
