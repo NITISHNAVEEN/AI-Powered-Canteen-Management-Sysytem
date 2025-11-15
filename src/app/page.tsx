@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 type MenuItem = {
@@ -61,15 +61,18 @@ export default function Home() {
   const { groupedItems, categories } = useMemo(() => {
     if (!menuItemsData) return { groupedItems: {}, categories: [] };
     
-    const uniqueCategories = [...new Set(menuItemsData.map(item => item.category).filter(Boolean) as string[])];
+    // Filter out items that do not have a category.
+    const categorizedItems = menuItemsData.filter(item => item.category);
+
+    const uniqueCategories = [...new Set(categorizedItems.map(item => item.category))];
     const categoryLabels = uniqueCategories.map(c => ({
         value: c,
         label: c.charAt(0).toUpperCase() + c.slice(1).replace('-', ' ')
     }));
 
 
-    const grouped: GroupedMenuItems = menuItemsData.reduce((acc, item) => {
-      const category = item.category || 'uncategorized';
+    const grouped: GroupedMenuItems = categorizedItems.reduce((acc, item) => {
+      const category = item.category; // No need for '||' fallback
       if (!acc[category]) {
         acc[category] = [];
       }
