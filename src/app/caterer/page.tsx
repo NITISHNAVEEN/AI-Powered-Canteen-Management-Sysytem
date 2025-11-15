@@ -131,8 +131,12 @@ export default function CatererPage() {
   
   const categoryOrder = useMemo(() => {
       if (!categories) return [];
-      return categories.map(c => c.name).sort((a,b) => a.localeCompare(b));
-  }, [categories]);
+      const order = categories.map(c => c.name).sort((a,b) => a.localeCompare(b));
+      if (groupedMenuItems['Uncategorized']) {
+          order.push('Uncategorized');
+      }
+      return order;
+  }, [categories, groupedMenuItems]);
 
 
   useEffect(() => {
@@ -188,7 +192,6 @@ export default function CatererPage() {
       const categoryNames = categories.map(c => c.name);
       category = await getItemCategory({
         name: newItemName,
-        description: newItemDescription,
         categories: categoryNames,
       });
     } catch (error) {
@@ -246,12 +249,11 @@ export default function CatererPage() {
 
     let category = editingItem.category;
     // Recategorize if name or description changed
-    if (editItemName !== editingItem.name || editItemDescription !== editingItem.description) {
+    if (editItemName !== editingItem.name) {
       try {
         const categoryNames = categories.map(c => c.name);
         category = await getItemCategory({
           name: editItemName,
-          description: editItemDescription,
           categories: categoryNames,
         });
       } catch (error) {
@@ -649,6 +651,7 @@ export default function CatererPage() {
           <div className="grid gap-4">
              {menuItems && menuItems.length > 0 ? (
               categoryOrder.map((category) => (
+                groupedMenuItems[category] && (
                 <div key={category}>
                   <h2 className="text-xl font-bold my-4">{category}</h2>
                   <div className="grid gap-4">
@@ -721,6 +724,7 @@ export default function CatererPage() {
                     ))}
                   </div>
                 </div>
+                )
               ))
             ) : (
               <Card>

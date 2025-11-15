@@ -10,7 +10,6 @@ import { z } from 'zod';
 
 const GetItemCategoryInputSchema = z.object({
   name: z.string().describe('The name of the menu item.'),
-  description: z.string().describe('The description of the menu item.'),
   categories: z.array(z.string()).describe("The list of available categories to choose from.")
 });
 export type GetItemCategoryInput = z.infer<typeof GetItemCategoryInputSchema>;
@@ -31,7 +30,7 @@ const prompt = ai.definePrompt({
     output: { schema: GetItemCategoryOutputSchema },
     prompt: `You are an expert at categorizing food items for a restaurant menu.
     
-    Given the name and description of a menu item, and a list of available categories, assign the item to the most appropriate category from the list.
+    Given the name of a menu item, and a list of available categories, assign the item to the most appropriate category from the list.
 
     Available Categories:
     {{#each categories}}
@@ -40,7 +39,6 @@ const prompt = ai.definePrompt({
     - Uncategorized
 
     Item Name: {{{name}}}
-    Item Description: {{{description}}}
     
     Return only the name of the most appropriate category. If no category from the list is a good fit, return "Uncategorized".`,
 });
