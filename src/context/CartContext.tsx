@@ -41,10 +41,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         return [...prevItems, { ...item, quantity: 1 }];
       }
     });
-    toast({
-        title: "Added to cart",
-        description: `${item.name} has been added to your cart.`,
-    })
   };
 
   const removeFromCart = (itemId: string) => {
