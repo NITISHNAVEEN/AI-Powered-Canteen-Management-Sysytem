@@ -24,6 +24,8 @@ import { collection, query, where } from 'firebase/firestore';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { getRecommendedItems, RecommendedItemsOutput } from '@/ai/flows/get-recommended-items-flow';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCart } from '@/context/CartContext';
+import { Badge } from '@/components/ui/badge';
 
 
 type MenuItem = {
@@ -55,6 +57,7 @@ export default function Home() {
   const [currentTime, setCurrentTime] = useState('');
   const firestore = useFirestore();
   const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const { addToCart, cartItems } = useCart();
 
   const [recommendations, setRecommendations] = useState<RecommendedItemsOutput | null>(null);
   const [areRecommendationsLoading, setAreRecommendationsLoading] = useState(true);
@@ -299,7 +302,7 @@ export default function Home() {
                         </div>
                         <div className="flex flex-col items-end gap-2">
                           <p className="font-semibold">₹{item.price.toFixed(2)}</p>
-                          <Button disabled={!item.available}>Add</Button>
+                          <Button onClick={() => addToCart(item)} disabled={!item.available}>Add</Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -341,7 +344,7 @@ export default function Home() {
                                 </div>
                                 <div className="flex flex-col items-end gap-2">
                                 <p className="font-semibold">₹{item.price.toFixed(2)}</p>
-                                <Button disabled={!item.available}>
+                                <Button onClick={() => addToCart(item)} disabled={!item.available}>
                                     Add
                                 </Button>
                                 </div>
@@ -369,6 +372,11 @@ export default function Home() {
             <Link href="/checkout" className="flex items-center gap-2">
               <ShoppingCart className="w-5 h-5"/>
               <span>Checkout</span>
+               {cartItems.length > 0 && (
+                <Badge variant="secondary" className="rounded-full">
+                  {cartItems.reduce((acc, item) => acc + item.quantity, 0)}
+                </Badge>
+              )}
             </Link>
           </Button>
         </footer>
