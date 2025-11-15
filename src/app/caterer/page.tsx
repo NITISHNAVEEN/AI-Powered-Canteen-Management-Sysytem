@@ -137,18 +137,28 @@ export default function CatererPage() {
   }, [menuItems]);
   
   const categoryOrder = useMemo(() => {
-      if (!categories) return [];
-      const definedCategories = categories.map(c => c.name).sort((a,b) => a.localeCompare(b));
-      const allCategoriesInMenu = menuItems ? [...new Set(menuItems.map(item => item.category || 'Uncategorized'))] : [];
-      const uncategorizedInMenu = allCategoriesInMenu.includes('Uncategorized');
+      if (!menuItems) return [];
+      
+      const definedCategoryNames = categories ? categories.map(c => c.name).sort() : [];
+      
+      const allCategoriesInMenu = [...new Set(menuItems.map(item => item.category || 'Uncategorized'))];
+      
+      const orderedCategories = definedCategoryNames.filter(c => allCategoriesInMenu.includes(c));
+      
+      const uncategorizedItemsExist = allCategoriesInMenu.includes('Uncategorized');
+      
+      // Add any menu item categories that are not in the defined categories list, except for 'Uncategorized'
+      allCategoriesInMenu.forEach(c => {
+          if (!orderedCategories.includes(c) && c !== 'Uncategorized') {
+              orderedCategories.push(c);
+          }
+      });
 
-      const ordered = definedCategories.filter(c => allCategoriesInMenu.includes(c));
-
-      if (uncategorizedInMenu) {
-        ordered.push('Uncategorized');
+      if (uncategorizedItemsExist) {
+          orderedCategories.push('Uncategorized');
       }
       
-      return ordered;
+      return orderedCategories;
   }, [categories, menuItems]);
 
 
@@ -629,7 +639,7 @@ export default function CatererPage() {
 
           {/* Edit Dialog */}
            <Dialog open={isEditOpen} onOpenChange={(isOpen) => { setEditOpen(isOpen); if (!isOpen) resetEditFormState(); }}>
-              {isEditOpen && (
+              {isEditOpen && editingItem && (
                 <DialogContent className="sm:max-w-[425px]">
                   <DialogHeader>
                     <DialogTitle>Edit Menu Item</DialogTitle>
@@ -667,7 +677,7 @@ export default function CatererPage() {
                 <div key={category}>
                   <h2 className="text-xl font-bold my-4">{category}</h2>
                   <div className="grid gap-4">
-                    {groupedMenuItems[category]?.map((item) => (
+                    {groupedMenuItems[category].map((item) => (
                       <Card key={item.id}>
                         <CardContent className="flex items-center gap-4 p-4">
                           {item.imageUrl && (
@@ -751,5 +761,3 @@ export default function CatererPage() {
     </SidebarProvider>
   );
 }
-
-    

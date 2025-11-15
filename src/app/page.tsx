@@ -85,10 +85,10 @@ export default function Home() {
       }
       
       const placeholder =
-        PlaceHolderImages.find(p => p.id === item.category.toLowerCase().replace(' ', '-')) ||
-        PlaceHolderImages.find(p => p.id === 'main-course') ||
+        PlaceHolderImages.find(p => p.id === (item.category || '').toLowerCase().replace(/[\s_]+/g, '-')) ||
         PlaceHolderImages[0];
-      const imageSrc = item.imageUrl || placeholder.imageUrl || 'https://picsum.photos/seed/1/600/400';
+      const imageSrc = item.imageUrl || placeholder.imageUrl;
+
 
       acc[category].push({
           ...item,
@@ -100,16 +100,36 @@ export default function Home() {
 
   }, [menuItems]);
   
-  const categories = useMemo(() => {
-    if (!categoriesData) return [];
-    return categoriesData.map(c => c.name).sort((a,b) => a.localeCompare(b));
-  }, [categoriesData]);
+  const categoriesInOrder = useMemo(() => {
+    if (!menuItems || !categoriesData) return [];
+    
+    const definedCategoryNames = categoriesData.map(c => c.name).sort();
+    
+    const allCategoriesInMenu = [...new Set(menuItems.map(item => item.category || 'Uncategorized'))];
+    
+    const orderedCategories = definedCategoryNames.filter(c => allCategoriesInMenu.includes(c));
+    
+    const uncategorizedItemsExist = allCategoriesInMenu.includes('Uncategorized');
+    
+    allCategoriesInMenu.forEach(c => {
+        if (!orderedCategories.includes(c) && c !== 'Uncategorized') {
+            orderedCategories.push(c);
+        }
+    });
+
+    if (uncategorizedItemsExist) {
+        orderedCategories.push('Uncategorized');
+    }
+    
+    return orderedCategories;
+}, [categoriesData, menuItems]);
+
 
   useEffect(() => {
-     if (categories && categories.length > 0 && !activeCategory) {
-        setActiveCategory(categories[0]);
+     if (categoriesInOrder && categoriesInOrder.length > 0 && !activeCategory) {
+        setActiveCategory(categoriesInOrder[0]);
      }
-  }, [categories, activeCategory]);
+  }, [categoriesInOrder, activeCategory]);
 
 
   useEffect(() => {
@@ -153,7 +173,7 @@ export default function Home() {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            {categories.map((cat) => (
+            {categoriesInOrder.map((cat) => (
               <SidebarMenuItem key={cat}>
                 <SidebarMenuButton 
                     isActive={activeCategory === cat}
@@ -202,12 +222,12 @@ export default function Home() {
         </header>
 
         <main className="flex-1 p-4 overflow-y-auto">
-           {categories && categories.length > 0 ? (
-            categories.map(category => (
+           {categoriesInOrder && categoriesInOrder.length > 0 ? (
+            categoriesInOrder.map(category => (
                 groupedItems[category] && groupedItems[category].length > 0 && (
                     <div key={category} ref={el => sectionRefs.current[category] = el} className="mb-8">
                         <h2 className="text-2xl font-bold mb-4">{category}</h2>
-                        <div className="grid gap-4">
+                        <div className="grid grid-cols-1 gap-4">
                         {groupedItems[category].map((item) => (
                             <Card key={item.id} className={!item.available ? 'opacity-50 pointer-events-none' : ''}>
                             <CardContent className="flex items-center gap-4 p-4">
