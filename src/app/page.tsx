@@ -20,8 +20,9 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, collectionGroup } from 'firebase/firestore';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { categorizeMenu, CategorizeMenuOutput } from '@/ai/flows/categorize-menu-flow';
 
 type MenuItem = {
   id: string;
@@ -34,8 +35,13 @@ type MenuItem = {
   category: string;
 };
 
-type GroupedMenuItems = {
-  [category: string]: (MenuItem & { image: string; imageHint: string })[];
+type CategorizedItem = MenuItem & { image: string; imageHint: string };
+
+type AICategorizedItems = {
+  [categoryKey: string]: {
+    label: string;
+    items: CategorizedItem[];
+  };
 };
 
 export default function Home() {
@@ -44,69 +50,94 @@ export default function Home() {
   const isCaterer = pathname === '/caterer';
   const [currentTime, setCurrentTime] = useState('');
   const firestore = useFirestore();
-  const [activeCategory, setActiveCategory] = useState<string>('recommendations');
+  const [activeCategory, setActiveCategory] = useState<string>('');
   const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
-
-  const catererId = 'demo-caterer';
+  const [aiCategories, setAICategories] = useState<CategorizeMenuOutput>({});
+  const [isCategorizing, setIsCategorizing] = useState(true);
 
   const menuItemsRef = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'caterers', catererId, 'menuItems');
+    return collectionGroup(firestore, 'menuItems');
   }, [firestore]);
 
-  const { data: menuItemsData, isLoading: isMenuLoading } =
-    useCollection<MenuItem>(menuItemsRef);
+  const { data: menuItemsData, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsRef);
 
-  const { groupedItems, categories } = useMemo(() => {
-    if (!menuItemsData) return { groupedItems: {}, categories: [] };
-    
-    // Filter out items that do not have a category.
-    const categorizedItems = menuItemsData.filter(item => item.category);
-
-    const uniqueCategories = [...new Set(categorizedItems.map(item => item.category))];
-    const categoryLabels = uniqueCategories.map(c => ({
-        value: c,
-        label: c.charAt(0).toUpperCase() + c.slice(1).replace('-', ' ')
-    }));
-
-
-    const grouped: GroupedMenuItems = categorizedItems.reduce((acc, item) => {
-      const category = item.category; // No need for '||' fallback
-      if (!acc[category]) {
-        acc[category] = [];
+  useEffect(() => {
+    const categorize = async () => {
+      if (!menuItemsData || menuItemsData.length === 0) {
+        setAICategories({});
+        setIsCategorizing(false);
+        return;
       }
-      const placeholder = PlaceHolderImages.find(p => p.id === category) || PlaceHolderImages[acc[category].length % PlaceHolderImages.length];
-      const imageSrc =
-        item.imageUrl ||
-        placeholder?.imageUrl ||
-        'https://picsum.photos/seed/1/600/400';
-
-      acc[category].push({
-        ...item,
-        image: imageSrc,
-        imageHint: placeholder?.imageHint || 'food',
-      });
-      return acc;
-    }, {} as GroupedMenuItems);
-
-    return { groupedItems: grouped, categories: categoryLabels };
+      setIsCategorizing(true);
+      try {
+        const itemsToCategorize = menuItemsData.map(({ id, name, description }) => ({
+          id,
+          name,
+          description,
+        }));
+        const result = await categorizeMenu(itemsToCategorize);
+        setAICategories(result);
+        if (result && Object.keys(result).length > 0) {
+          setActiveCategory(Object.keys(result)[0]);
+        }
+      } catch (error) {
+        console.error("Failed to categorize menu items:", error);
+        // Fallback to simple grouping if AI fails
+        const fallbackCategories: CategorizeMenuOutput = {};
+        menuItemsData.forEach(item => {
+            const catKey = item.category || 'uncategorized';
+            if (!fallbackCategories[catKey]) {
+                fallbackCategories[catKey] = {
+                    label: catKey.charAt(0).toUpperCase() + catKey.slice(1).replace(/-/g, ' '),
+                    items: []
+                };
+            }
+            fallbackCategories[catKey].items.push(item.id);
+        });
+        setAICategories(fallbackCategories);
+      } finally {
+        setIsCategorizing(false);
+      }
+    };
+    categorize();
   }, [menuItemsData]);
 
 
-  useEffect(() => {
-    if (categories.length > 0 && !sectionRefs.current[activeCategory]) {
-       setActiveCategory(categories[0].value);
+  const groupedItems = useMemo((): AICategorizedItems => {
+    if (!menuItemsData || Object.keys(aiCategories).length === 0) {
+      return {};
     }
-  }, [categories, activeCategory]);
 
-  const handleCategoryClick = (categoryValue: string) => {
-    setActiveCategory(categoryValue);
-    sectionRefs.current[categoryValue]?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    });
-  };
+    const itemsById = new Map(menuItemsData.map(item => [item.id, item]));
+    const result: AICategorizedItems = {};
+
+    for (const categoryKey in aiCategories) {
+      const categoryData = aiCategories[categoryKey];
+      result[categoryKey] = {
+        label: categoryData.label,
+        items: categoryData.items
+          .map(itemId => {
+            const item = itemsById.get(itemId);
+            if (!item) return null;
+
+            const placeholder =
+              PlaceHolderImages.find(p => p.id === (item.category || categoryKey)) ||
+              PlaceHolderImages[0];
+            const imageSrc = item.imageUrl || placeholder.imageUrl || 'https://picsum.photos/seed/1/600/400';
+
+            return {
+              ...item,
+              image: imageSrc,
+              imageHint: placeholder?.imageHint || 'food',
+            };
+          })
+          .filter((item): item is CategorizedItem => item !== null),
+      };
+    }
+    return result;
+  }, [menuItemsData, aiCategories]);
 
 
   useEffect(() => {
@@ -118,6 +149,14 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
+  const handleCategoryClick = (categoryValue: string) => {
+    setActiveCategory(categoryValue);
+    sectionRefs.current[categoryValue]?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  };
+
   const handleRoleChange = (checked: boolean) => {
     if (checked) {
       router.push('/caterer');
@@ -125,19 +164,21 @@ export default function Home() {
       router.push('/');
     }
   };
+  
+  const isLoading = isMenuLoading || isCategorizing;
 
-  if (isMenuLoading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        Loading...
+        Loading and categorizing menu...
       </div>
     );
   }
   
-  const findCategoryLabel = (value: string) => {
-    const category = categories.find(c => c.value === value);
-    return category ? category.label : value.charAt(0).toUpperCase() + value.slice(1);
-  }
+  const categories = Object.keys(groupedItems).map(key => ({
+      value: key,
+      label: groupedItems[key].label
+  }));
 
   return (
     <SidebarProvider>
@@ -201,11 +242,11 @@ export default function Home() {
 
         <main className="flex-1 p-4 overflow-y-auto">
            {Object.keys(groupedItems).length > 0 ? (
-            Object.entries(groupedItems).map(([category, items]) => (
-              <div key={category} ref={el => sectionRefs.current[category] = el} className="mb-8">
-                <h2 className="text-2xl font-bold mb-4">{findCategoryLabel(category)}</h2>
+            Object.entries(groupedItems).map(([categoryKey, categoryData]) => (
+              <div key={categoryKey} ref={el => sectionRefs.current[categoryKey] = el} className="mb-8">
+                <h2 className="text-2xl font-bold mb-4">{categoryData.label}</h2>
                 <div className="grid gap-4">
-                  {items.map((item) => (
+                  {categoryData.items.map((item) => (
                     <Card key={item.id} className={!item.available ? 'blur-sm pointer-events-none' : ''}>
                       <CardContent className="flex items-center gap-4 p-4">
                         <Image
