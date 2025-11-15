@@ -89,5 +89,5 @@ export function deleteDocumentNonBlocking(docRef: DocumentReference) {
     });
 }
 
-// Re-export doc and setDoc for convenience in other files that need it for placing orders
+// Re-export doc and setDoc for convenience in other files
 export { doc, setDoc };

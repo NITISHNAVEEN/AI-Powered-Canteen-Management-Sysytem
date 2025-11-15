@@ -1,5 +1,5 @@
 'use client';
-import { Clock, DollarSign, Package, Users } from 'lucide-react';
+import { Clock, DollarSign, Package, Users, Hash } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -62,6 +62,7 @@ type Order = {
         seconds: number;
         nanoseconds: number;
     };
+    tokenNumber: number;
     customerName?: string;
     customerEmail?: string;
 };
@@ -252,7 +253,7 @@ export default function DashboardPage() {
                 <CardTitle>Sales Overview (Last 7 Days)</CardTitle>
               </CardHeader>
               <CardContent className="pl-2">
-                {salesData.length > 0 ? (
+                {salesData.some(d => d.revenue > 0) ? (
                     <ResponsiveContainer width="100%" height={350}>
                     <BarChart data={salesData}>
                         <CartesianGrid strokeDasharray="3 3" />
@@ -301,6 +302,7 @@ export default function DashboardPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                            <TableHead>Token</TableHead>
                             <TableHead>Customer</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Date</TableHead>
@@ -310,6 +312,7 @@ export default function DashboardPage() {
                         <TableBody>
                             {recentOrders.map((order) => (
                             <TableRow key={order.id}>
+                                <TableCell className="font-bold">#{order.tokenNumber}</TableCell>
                                 <TableCell>
                                 <div className="font-medium">{order.customerName || 'Anonymous'}</div>
                                 <div className="text-sm text-muted-foreground">{order.customerEmail || 'N/A'}</div>

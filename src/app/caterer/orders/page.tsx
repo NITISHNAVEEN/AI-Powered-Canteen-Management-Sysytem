@@ -1,5 +1,5 @@
 'use client';
-import { Clock, Check, X, Truck } from 'lucide-react';
+import { Clock, Check, X, Truck, Hash } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -17,7 +17,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking, setDoc } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import {
   Card,
@@ -62,6 +62,7 @@ type Order = {
         seconds: number;
         nanoseconds: number;
     };
+    tokenNumber: number;
     customerName?: string;
     customerEmail?: string;
 };
@@ -116,10 +117,20 @@ export default function OrdersPage() {
     router.push(checked ? '/caterer' : '/');
   };
 
-  const handleStatusChange = (orderId: string, newStatus: Order['status']) => {
+  const handleStatusChange = (order: Order, newStatus: Order['status']) => {
     if (!firestore) return;
-    const orderDocRef = doc(firestore, 'caterers', catererId, 'orders', orderId);
-    updateDocumentNonBlocking(orderDocRef, { status: newStatus });
+    
+    const updatedOrderData = { ...order, status: newStatus };
+
+    // Update the caterer's order document
+    const catererOrderDocRef = doc(firestore, 'caterers', catererId, 'orders', order.id);
+    updateDocumentNonBlocking(catererOrderDocRef, { status: newStatus });
+
+    // Update the user's order document
+    const userOrderDocRef = doc(firestore, 'users', order.userId, 'orders', order.id);
+    // Use setDoc with merge to ensure the user's order is created or updated
+    setDoc(userOrderDocRef, { status: newStatus }, { merge: true });
+
     toast({ title: 'Order status updated!' });
   };
 
@@ -196,7 +207,7 @@ export default function OrdersPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                            <TableHead>Order ID</TableHead>
+                            <TableHead>Token</TableHead>
                             <TableHead>Customer</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead>Items</TableHead>
@@ -207,7 +218,12 @@ export default function OrdersPage() {
                         <TableBody>
                             {sortedOrders.map((order) => (
                             <TableRow key={order.id}>
-                                <TableCell className="font-medium text-xs">{order.id}</TableCell>
+                                <TableCell className="font-bold text-lg">
+                                  <div className="flex items-center gap-2">
+                                    <Hash className="h-4 w-4 text-muted-foreground" />
+                                    {order.tokenNumber}
+                                  </div>
+                                </TableCell>
                                 <TableCell>
                                     <div className="font-medium">{order.customerName || 'Anonymous User'}</div>
                                     <div className="text-sm text-muted-foreground">{order.customerEmail || 'N/A'}</div>
@@ -222,7 +238,7 @@ export default function OrdersPage() {
                                 <TableCell>
                                     <Select
                                         value={order.status}
-                                        onValueChange={(newStatus) => handleStatusChange(order.id, newStatus as Order['status'])}
+                                        onValueChange={(newStatus) => handleStatusChange(order, newStatus as Order['status'])}
                                     >
                                         <SelectTrigger className={`w-[140px] ${statusColors[order.status]}`}>
                                             <div className="flex items-center gap-2">

@@ -7,8 +7,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useFirebase, addDocumentNonBlocking, useUser } from '@/firebase';
-import { collection, serverTimestamp } from 'firebase/firestore';
+import { useFirebase, addDocumentNonBlocking, useUser, setDoc } from '@/firebase';
+import { collection, serverTimestamp, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
@@ -36,17 +36,18 @@ export default function CheckoutPage() {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Could not place order. Please try again.',
+        description: 'You must be logged in and have items in your cart to place an order.',
       });
       return;
     }
     
-    // Assuming all items in the cart are from the same caterer
     const catererId = cartItems[0]?.catererId;
     if (!catererId) {
         toast({ variant: 'destructive', title: 'Could not determine caterer.'});
         return;
     }
+
+    const tokenNumber = Math.floor(Math.random() * 100) + 1;
 
     const orderData = {
       userId: user.uid,
@@ -58,10 +59,11 @@ export default function CheckoutPage() {
         price: item.price,
       })),
       totalAmount: total,
-      status: 'Pending',
+      status: 'Pending' as const,
       orderDate: serverTimestamp(),
       customerName: user.displayName || 'Anonymous User',
       customerEmail: user.email || null,
+      tokenNumber: tokenNumber,
     };
     
     try {
@@ -69,17 +71,17 @@ export default function CheckoutPage() {
       const catererOrdersRef = collection(firestore, 'caterers', catererId, 'orders');
       const orderDocRef = await addDocumentNonBlocking(catererOrdersRef, orderData);
 
-      // 2. Add same order to user's collection
+      // 2. Add same order to user's collection, using the same ID for consistency
       if (orderDocRef) {
           const userOrdersRef = collection(firestore, 'users', user.uid, 'orders');
-          // We can use setDoc here with the same ID to keep them in sync
           const userOrderDoc = doc(userOrdersRef, orderDocRef.id);
+          // Use setDoc here to ensure the ID is the same as the caterer's order doc
           setDoc(userOrderDoc, orderData);
       }
       
       toast({
         title: 'Order Placed!',
-        description: 'Your order has been successfully placed.',
+        description: `Your order token is #${tokenNumber}. It has been successfully placed.`,
       });
       clearCart();
       router.push('/order');
