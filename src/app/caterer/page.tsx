@@ -275,7 +275,7 @@ export default function CatererPage() {
     } else {
       // Keep existing image if 'none' is selected but one exists and imageUrl has not been cleared
       // Or save with no image if 'none' is selected
-      saveItem(editImageSource === 'none' ? undefined : editingItem.imageUrl);
+      saveItem(editImageSource === 'none' ? editingItem.imageUrl : editingItem.imageUrl);
     }
   };
   
@@ -720,65 +720,69 @@ export default function CatererPage() {
                   Add Menu Item
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Add New Menu Item</DialogTitle>
-                </DialogHeader>
-                {renderAddFormContent()}
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={resetAddFormState}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    onClick={handleAddMenuItem}
-                    disabled={
-                      !newItemName ||
-                      !newItemDescription ||
-                      !newItemPrice ||
-                      !newItemCategory
-                    }
-                  >
-                    Save Item
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
+              {isAddOpen && (
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Add New Menu Item</DialogTitle>
+                  </DialogHeader>
+                  {renderAddFormContent()}
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={resetAddFormState}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      onClick={handleAddMenuItem}
+                      disabled={
+                        !newItemName ||
+                        !newItemDescription ||
+                        !newItemPrice ||
+                        !newItemCategory
+                      }
+                    >
+                      Save Item
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              )}
             </Dialog>
           </div>
 
           {/* Edit Dialog */}
            <Dialog open={isEditOpen} onOpenChange={(isOpen) => { setEditOpen(isOpen); if (!isOpen) resetEditFormState(); }}>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Edit Menu Item</DialogTitle>
-                </DialogHeader>
-                {renderEditFormContent()}
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={resetEditFormState}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    onClick={handleEditMenuItem}
-                    disabled={
-                      !editItemName ||
-                      !editItemDescription ||
-                      !editItemPrice ||
-                      !editItemCategory
-                    }
-                  >
-                    Save Changes
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
+              {isEditOpen && (
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Edit Menu Item</DialogTitle>
+                  </DialogHeader>
+                  {renderEditFormContent()}
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={resetEditFormState}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      onClick={handleEditMenuItem}
+                      disabled={
+                        !editItemName ||
+                        !editItemDescription ||
+                        !editItemPrice ||
+                        !editItemCategory
+                      }
+                    >
+                      Save Changes
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              )}
             </Dialog>
 
           <div className="grid gap-4">
