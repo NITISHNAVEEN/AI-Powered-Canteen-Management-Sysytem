@@ -1,15 +1,37 @@
 'use client';
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import Confetti from 'react-confetti';
-import { useWindowSize } from '@react-hook/window-size'
+
+const useWindowSize = () => {
+  const [windowSize, setWindowSize] = useState({
+    width: 0,
+    height: 0,
+  });
+
+  useEffect(() => {
+    function handleResize() {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    }
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Set initial size
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return windowSize;
+};
 
 
 export default function OrderSuccessPage() {
-  const { width, height } = useWindowSize()
+  const { width, height } = useWindowSize();
   
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-8 bg-muted/40">
