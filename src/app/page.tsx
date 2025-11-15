@@ -51,9 +51,7 @@ export default function Home() {
   const isCaterer = pathname.startsWith('/caterer');
   const [currentTime, setCurrentTime] = useState('');
   const firestore = useFirestore();
-  const [activeCategory, setActiveCategory] = useState<string>('');
   const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
-  const observer = useRef<IntersectionObserver | null>(null);
 
   // Hardcoded catererId for demonstration
   const catererId = 'demo-caterer';
@@ -128,54 +126,6 @@ export default function Home() {
 
 
   useEffect(() => {
-    if (observer.current) {
-      observer.current.disconnect();
-    }
-
-    observer.current = new IntersectionObserver(
-      (entries) => {
-        let bestVisible: IntersectionObserverEntry | null = null;
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            // Find the most visible element at the top of the viewport.
-            if (!bestVisible || entry.boundingClientRect.top < bestVisible.boundingClientRect.top) {
-              if (entry.boundingClientRect.top >= 0) { // Ensure it's not above the viewport
-                bestVisible = entry;
-              }
-            }
-          }
-        });
-
-        if (bestVisible) {
-          setActiveCategory(bestVisible.target.id);
-        }
-      },
-      {
-        rootMargin: '0px 0px -40% 0px',
-        threshold: 0.1,
-      }
-    );
-
-    const currentObserver = observer.current;
-    Object.values(sectionRefs.current).forEach((section) => {
-      if (section) {
-        currentObserver.observe(section);
-      }
-    });
-
-    if (!activeCategory && categoriesInOrder.length > 0) {
-      setActiveCategory(categoriesInOrder[0]);
-    }
-    
-    return () => {
-      if (currentObserver) {
-        currentObserver.disconnect();
-      }
-    };
-  }, [categoriesInOrder, menuItems, activeCategory]);
-
-
-  useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(
         new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })
@@ -189,7 +139,6 @@ export default function Home() {
       behavior: 'smooth',
       block: 'start',
     });
-    setActiveCategory(categoryValue);
   };
 
   const handleRoleChange = (checked: boolean) => {
@@ -219,7 +168,6 @@ export default function Home() {
             {categoriesInOrder.map((cat) => (
               <SidebarMenuItem key={cat}>
                 <SidebarMenuButton 
-                    isActive={activeCategory === cat}
                     onClick={() => handleCategoryClick(cat)}
                 >
                   {cat}
@@ -270,7 +218,6 @@ export default function Home() {
                 groupedItems[category] && groupedItems[category].length > 0 && (
                     <div 
                         key={category} 
-                        id={category}
                         ref={el => sectionRefs.current[category] = el} 
                         className="mb-8 scroll-mt-20" // scroll-mt adds top margin for scrollIntoView
                     >
