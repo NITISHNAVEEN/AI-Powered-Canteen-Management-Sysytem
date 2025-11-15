@@ -234,7 +234,7 @@ export default function CategoriesPage() {
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={resetEditForm}>Cancel</Button>
-                  <Button type="submit" onClick={handleEditCategory} disabled={!editCategoryName.trim()}>Save Changes</Button>
+                  <Button type="submit" onClick={handleEditCategory} disabled={!editCategoryName || !editCategoryName.trim()}>Save Changes</Button>
                 </DialogFooter>
               </DialogContent>
             )}
