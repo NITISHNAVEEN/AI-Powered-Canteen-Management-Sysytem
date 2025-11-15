@@ -36,7 +36,7 @@ type MenuItem = {
 export default function Home() {
   const router = useRouter();
   const pathname = usePathname();
-  const [isCaterer, setIsCaterer] = useState(false);
+  const isCaterer = pathname === '/caterer';
   const [currentTime, setCurrentTime] = useState('');
   const firestore = useFirestore();
 
@@ -70,10 +70,6 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    setIsCaterer(pathname === '/caterer');
-  }, [pathname]);
-
   const sidebarMenuItems = [
     'Recommendations',
     'Paratha',
@@ -85,7 +81,6 @@ export default function Home() {
   ];
 
   const handleRoleChange = (checked: boolean) => {
-    setIsCaterer(checked);
     if (checked) {
       router.push('/caterer');
     } else {

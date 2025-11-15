@@ -62,7 +62,7 @@ type ImageSource = 'upload' | 'url' | 'none';
 export default function CatererPage() {
   const router = useRouter();
   const pathname = usePathname();
-  const [isCaterer, setIsCaterer] = useState(true);
+  const isCaterer = pathname === '/caterer';
   const firestore = useFirestore();
   const [currentTime, setCurrentTime] = useState('');
   const { toast } = useToast();
@@ -96,14 +96,9 @@ export default function CatererPage() {
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    setIsCaterer(pathname === '/caterer');
-  }, [pathname]);
-
   const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Settings'];
 
   const handleRoleChange = (checked: boolean) => {
-    setIsCaterer(checked);
     if (checked) {
       router.push('/caterer');
     } else {
