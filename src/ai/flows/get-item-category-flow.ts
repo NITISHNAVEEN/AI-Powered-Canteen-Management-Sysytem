@@ -28,19 +28,50 @@ const prompt = ai.definePrompt({
     name: 'getItemCategoryPrompt',
     input: { schema: GetItemCategoryInputSchema },
     output: { schema: GetItemCategoryOutputSchema },
-    prompt: `You are an expert at categorizing food items for a restaurant menu.
-    
-    Given the name of a menu item, and a list of available categories, assign the item to the most appropriate category from the list.
+    prompt: `You are an expert at categorizing food items for a restaurant menu. Your task is to assign a menu item to the most appropriate category from a given list.
 
-    Available Categories:
-    {{#each categories}}
-    - {{{this}}}
-    {{/each}}
-    - Uncategorized
+Follow these rules:
+1.  First, check if any of the category names are present as a word or part of a word in the item name. If there is a direct match, use that category.
+2.  If no direct match is found, use your food knowledge to find the best semantic fit.
+3.  If no category is a good fit, and only then, return "Uncategorized".
 
-    Item Name: {{{name}}}
+Here are some examples of how to categorize:
+
+Example 1:
+Available Categories:
+- Dosa
+- Paratha
+- Burger
+Item Name: Masala Dosa
+Correct Category: Dosa
+
+Example 2:
+Available Categories:
+- Pizza
+- Sandwiches
+- Beverages
+Item Name: Club Sandwich
+Correct Category: Sandwiches
+
+Example 3:
+Available Categories:
+- Starters
+- Main Course
+- Desserts
+Item Name: Gulab Jamun
+Correct Category: Desserts
+
+Now, perform the categorization for the following item.
+
+Available Categories:
+{{#each categories}}
+- {{{this}}}
+{{/each}}
+- Uncategorized
+
+Item Name: {{{name}}}
     
-    Return only the name of the most appropriate category. If no category from the list is a good fit, return "Uncategorized".`,
+Return only the name of the most appropriate category.`,
 });
 
 const getItemCategoryFlow = ai.defineFlow(
