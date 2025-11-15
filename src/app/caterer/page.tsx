@@ -1,5 +1,5 @@
 'use client';
-import { Clock, PlusCircle, Trash2, Edit } from 'lucide-react';
+import { Clock, PlusCircle, Trash2, Edit, ChevronsUpDown } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -27,6 +27,18 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from '@/components/ui/command';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -49,7 +61,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Image from 'next/image';
-import { getItemCategory } from '@/ai/flows/get-item-category-flow';
+import { cn } from '@/lib/utils';
 
 type MenuItem = {
   id: string;
@@ -81,7 +93,6 @@ export default function CatererPage() {
   const [currentTime, setCurrentTime] = useState('');
   const { toast } = useToast();
   
-  // A hardcoded catererId for demonstration without auth
   const catererId = 'demo-caterer';
 
   // Add Item State
@@ -89,6 +100,8 @@ export default function CatererPage() {
   const [newItemName, setNewItemName] = useState('');
   const [newItemDescription, setNewItemDescription] = useState('');
   const [newItemPrice, setNewItemPrice] = useState('');
+  const [newItemCategory, setNewItemCategory] = useState('');
+  const [isAddCategoryOpen, setAddCategoryOpen] = useState(false);
   const [addImageSource, setAddImageSource] = useState<ImageSource>('none');
   const [addImageUrl, setAddImageUrl] = useState('');
   const [addImageFile, setAddImageFile] = useState<File | null>(null);
@@ -99,6 +112,8 @@ export default function CatererPage() {
   const [editItemName, setEditItemName] = useState('');
   const [editItemDescription, setEditItemDescription] = useState('');
   const [editItemPrice, setEditItemPrice] = useState('');
+  const [editItemCategory, setEditItemCategory] = useState('');
+  const [isEditCategoryOpen, setEditCategoryOpen] = useState(false);
   const [editImageSource, setEditImageSource] = useState<ImageSource>('none');
   const [editImageUrl, setEditImageUrl] = useState('');
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
@@ -120,7 +135,7 @@ export default function CatererPage() {
   const groupedMenuItems = useMemo(() => {
     if (!menuItems) return {};
     return menuItems.reduce((acc, item) => {
-      const category = item.category || 'uncategorized';
+      const category = item.category || 'Uncategorized';
       if (!acc[category]) {
         acc[category] = [];
       }
@@ -158,6 +173,7 @@ export default function CatererPage() {
     setNewItemName('');
     setNewItemDescription('');
     setNewItemPrice('');
+    setNewItemCategory('');
     setAddImageSource('none');
     setAddImageUrl('');
     setAddImageFile(null);
@@ -169,6 +185,7 @@ export default function CatererPage() {
     setEditItemName('');
     setEditItemDescription('');
     setEditItemPrice('');
+    setEditItemCategory('');
     setEditImageSource('none');
     setEditImageUrl('');
     setEditImageFile(null);
@@ -176,7 +193,7 @@ export default function CatererPage() {
   }, []);
 
   const handleAddMenuItem = async () => {
-    if (!menuItemsRef || !categories) return;
+    if (!menuItemsRef || !newItemCategory) return;
     const price = parseFloat(newItemPrice);
     if (isNaN(price)) {
       toast({
@@ -187,24 +204,6 @@ export default function CatererPage() {
       return;
     }
 
-    let category = 'Uncategorized';
-    try {
-      const categoryNames = categories.map(c => c.name);
-      category = await getItemCategory({
-        name: newItemName,
-        categories: categoryNames,
-      });
-    } catch (error) {
-      console.error("Failed to get category from AI:", error);
-      toast({
-        variant: 'destructive',
-        title: 'AI Categorization Failed',
-        description: 'Could not determine a category. Please try again.',
-      });
-      return;
-    }
-
-
     const saveItem = (finalImageUrl?: string) => {
       const newItemData: Omit<MenuItem, 'id'> = {
         catererId: catererId,
@@ -212,7 +211,7 @@ export default function CatererPage() {
         description: newItemDescription,
         price,
         available: true,
-        category,
+        category: newItemCategory,
         ...(finalImageUrl && { imageUrl: finalImageUrl }),
       };
 
@@ -235,7 +234,7 @@ export default function CatererPage() {
   };
 
   const handleEditMenuItem = async () => {
-    if (!firestore || !editingItem || !categories) return;
+    if (!firestore || !editingItem || !editItemCategory) return;
 
     const price = parseFloat(editItemPrice);
     if (isNaN(price)) {
@@ -247,27 +246,6 @@ export default function CatererPage() {
       return;
     }
 
-    let category = editingItem.category;
-    // Recategorize if name or description changed
-    if (editItemName !== editingItem.name) {
-      try {
-        const categoryNames = categories.map(c => c.name);
-        category = await getItemCategory({
-          name: editItemName,
-          categories: categoryNames,
-        });
-      } catch (error) {
-        console.error("Failed to get category from AI:", error);
-        toast({
-          variant: 'destructive',
-          title: 'AI Categorization Failed',
-          description: 'Could not update the category. Please try again.',
-        });
-        return;
-      }
-    }
-
-
     const itemDocRef = doc(firestore, 'caterers', catererId, 'menuItems', editingItem.id);
 
     const saveItem = (finalImageUrl?: string) => {
@@ -275,7 +253,7 @@ export default function CatererPage() {
         name: editItemName,
         description: editItemDescription,
         price,
-        category,
+        category: editItemCategory,
       };
       
       if (editImageSource !== 'none') {
@@ -307,6 +285,7 @@ export default function CatererPage() {
     setEditItemName(item.name);
     setEditItemDescription(item.description);
     setEditItemPrice(String(item.price));
+    setEditItemCategory(item.category);
     setEditImageUrl(item.imageUrl || '');
     setEditImageSource(item.imageUrl ? 'url' : 'none');
     setEditImageFile(null);
@@ -376,6 +355,46 @@ export default function CatererPage() {
           className="col-span-3"
           placeholder="e.g., 50.00"
         />
+      </div>
+       <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="add-category" className="text-right">
+          Category
+        </Label>
+        <Popover open={isAddCategoryOpen} onOpenChange={setAddCategoryOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={isAddCategoryOpen}
+              className="col-span-3 justify-between"
+            >
+              {newItemCategory
+                ? categories?.find((c) => c.name.toLowerCase() === newItemCategory.toLowerCase())?.name
+                : 'Select category...'}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[200px] p-0">
+            <Command>
+              <CommandInput placeholder="Search category..." />
+              <CommandEmpty>No category found.</CommandEmpty>
+              <CommandGroup>
+                {categories?.map((category) => (
+                  <CommandItem
+                    key={category.id}
+                    value={category.name}
+                    onSelect={(currentValue) => {
+                      setNewItemCategory(currentValue === newItemCategory ? '' : currentValue);
+                      setAddCategoryOpen(false);
+                    }}
+                  >
+                    {category.name}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
       <div className="grid grid-cols-4 items-start gap-4">
         <Label className="text-right pt-2">Photo</Label>
@@ -461,6 +480,46 @@ export default function CatererPage() {
           className="col-span-3"
           placeholder="e.g., 50.00"
         />
+      </div>
+        <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="edit-category" className="text-right">
+          Category
+        </Label>
+        <Popover open={isEditCategoryOpen} onOpenChange={setEditCategoryOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={isEditCategoryOpen}
+              className="col-span-3 justify-between"
+            >
+              {editItemCategory
+                ? categories?.find((c) => c.name.toLowerCase() === editItemCategory.toLowerCase())?.name
+                : 'Select category...'}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[200px] p-0">
+            <Command>
+              <CommandInput placeholder="Search category..." />
+              <CommandEmpty>No category found.</CommandEmpty>
+              <CommandGroup>
+                {categories?.map((category) => (
+                  <CommandItem
+                    key={category.id}
+                    value={category.name}
+                    onSelect={(currentValue) => {
+                      setEditItemCategory(currentValue === editItemCategory ? '' : currentValue);
+                      setEditCategoryOpen(false);
+                    }}
+                  >
+                    {category.name}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
       <div className="grid grid-cols-4 items-start gap-4">
         <Label className="text-right pt-2">Photo</Label>
@@ -605,7 +664,8 @@ export default function CatererPage() {
                       disabled={
                         !newItemName ||
                         !newItemDescription ||
-                        !newItemPrice
+                        !newItemPrice ||
+                        !newItemCategory
                       }
                     >
                       Save Item
@@ -638,7 +698,8 @@ export default function CatererPage() {
                       disabled={
                         !editItemName ||
                         !editItemDescription ||
-                        !editItemPrice
+                        !editItemPrice ||
+                        !editItemCategory
                       }
                     >
                       Save Changes
