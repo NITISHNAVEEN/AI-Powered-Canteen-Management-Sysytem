@@ -86,7 +86,8 @@ export default function Home() {
       
       const placeholder =
         PlaceHolderImages.find(p => p.id === (item.category || '').toLowerCase().replace(/[\s_]+/g, '-')) ||
-        PlaceHolderImages[0];
+        PlaceHolderImages.find(p => p.id === 'main-course') || // fallback to a generic one
+        { imageUrl: 'https://picsum.photos/seed/placeholder/96/96', imageHint: 'food item' };
       const imageSrc = item.imageUrl || placeholder.imageUrl;
 
 
