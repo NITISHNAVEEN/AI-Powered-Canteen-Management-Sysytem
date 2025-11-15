@@ -221,6 +221,7 @@ export default function CategoriesPage() {
           </div>
 
           <Dialog open={isEditOpen} onOpenChange={(isOpen) => { setEditOpen(isOpen); if (!isOpen) resetEditForm(); }}>
+            {isEditOpen && (
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                   <DialogTitle>Edit Category</DialogTitle>
@@ -236,7 +237,8 @@ export default function CategoriesPage() {
                   <Button type="submit" onClick={handleEditCategory} disabled={!editCategoryName.trim()}>Save Changes</Button>
                 </DialogFooter>
               </DialogContent>
-            </Dialog>
+            )}
+          </Dialog>
 
           <Card>
             <CardHeader>
