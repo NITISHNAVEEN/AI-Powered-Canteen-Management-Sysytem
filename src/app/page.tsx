@@ -128,47 +128,51 @@ export default function Home() {
 
 
   useEffect(() => {
-    // Disconnect previous observer
     if (observer.current) {
       observer.current.disconnect();
     }
 
-    // Create a new observer
     observer.current = new IntersectionObserver(
       (entries) => {
-        // Find the entry that is most visible in the viewport
-        const visibleEntry = entries.find((entry) => entry.isIntersecting);
-        if (visibleEntry) {
-          setActiveCategory(visibleEntry.target.id);
+        let bestVisible: IntersectionObserverEntry | null = null;
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            // Find the most visible element at the top of the viewport.
+            if (!bestVisible || entry.boundingClientRect.top < bestVisible.boundingClientRect.top) {
+              if (entry.boundingClientRect.top >= 0) { // Ensure it's not above the viewport
+                bestVisible = entry;
+              }
+            }
+          }
+        });
+
+        if (bestVisible) {
+          setActiveCategory(bestVisible.target.id);
         }
       },
       {
-        rootMargin: '-20% 0px -80% 0px', // Highlights when the section is in the upper part of the viewport
-        threshold: 0,
+        rootMargin: '0px 0px -40% 0px',
+        threshold: 0.1,
       }
     );
 
     const currentObserver = observer.current;
-
-    // Observe all the sections
     Object.values(sectionRefs.current).forEach((section) => {
       if (section) {
         currentObserver.observe(section);
       }
     });
 
-    // Set initial active category if not set
     if (!activeCategory && categoriesInOrder.length > 0) {
       setActiveCategory(categoriesInOrder[0]);
     }
-
-    // Cleanup function
+    
     return () => {
       if (currentObserver) {
         currentObserver.disconnect();
       }
     };
-  }, [categoriesInOrder, menuItems]); // Re-run when items change
+  }, [categoriesInOrder, menuItems, activeCategory]);
 
 
   useEffect(() => {
@@ -185,7 +189,7 @@ export default function Home() {
       behavior: 'smooth',
       block: 'start',
     });
-    // The observer will handle setting the active category
+    setActiveCategory(categoryValue);
   };
 
   const handleRoleChange = (checked: boolean) => {
