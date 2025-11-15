@@ -7,10 +7,19 @@ service cloud.firestore {
       allow read: if true;
     }
 
-    // Restrict writes to be more secure in the future if needed
-    // For now, allowing writes for caterer functionality
+    // Allow writes to the caterer document itself (e.g. for isCanteenOpen)
+    match /caterers/{catererId} {
+      allow write: if true;
+    }
+
+    // Allow writes to caterer subcollections (e.g. menuItems, orders)
     match /caterers/{catererId}/{document=**} {
       allow write: if true;
+    }
+
+    // Allow users to create their own orders
+    match /users/{userId}/orders/{orderId} {
+        allow write: if true;
     }
   }
 }
