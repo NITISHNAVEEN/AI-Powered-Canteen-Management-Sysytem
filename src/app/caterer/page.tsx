@@ -64,7 +64,6 @@ export default function CatererPage() {
   const pathname = usePathname();
   const [isCaterer, setIsCaterer] = useState(true);
   const firestore = useFirestore();
-  const [isClient, setIsClient] = useState(false);
   const [currentTime, setCurrentTime] = useState('');
   const { toast } = useToast();
 
@@ -87,10 +86,6 @@ export default function CatererPage() {
 
   const { data: menuItems, isLoading: isMenuLoading } =
     useCollection<MenuItem>(menuItemsRef);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -194,7 +189,7 @@ export default function CatererPage() {
     toast({ title: 'Menu item removed.' });
   };
 
-  if (!isClient || isMenuLoading) {
+  if (isMenuLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         Loading...

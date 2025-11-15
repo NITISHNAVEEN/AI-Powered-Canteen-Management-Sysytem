@@ -37,7 +37,6 @@ export default function Home() {
   const router = useRouter();
   const pathname = usePathname();
   const [isCaterer, setIsCaterer] = useState(false);
-  const [isClient, setIsClient] = useState(false);
   const [currentTime, setCurrentTime] = useState('');
   const firestore = useFirestore();
 
@@ -61,10 +60,6 @@ export default function Home() {
     });
   }, [menuItemsData]);
 
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -98,7 +93,7 @@ export default function Home() {
     }
   };
 
-  if (!isClient || isMenuLoading) {
+  if (isMenuLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         Loading...
