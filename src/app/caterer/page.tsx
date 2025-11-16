@@ -687,7 +687,10 @@ export default function CatererPage() {
                 </div>
                 <div className="flex gap-2">
                     {previousAvailabilityState ? (
-                        <Button onClick={handleRevertAvailability} variant="outline">
+                        <Button
+                          onClick={handleRevertAvailability}
+                          style={{ backgroundColor: '#5EDC1F', color: 'white' }}
+                        >
                             <Undo className="mr-2 h-4 w-4" /> Open Canteen
                         </Button>
                     ) : (
@@ -823,5 +826,3 @@ export default function CatererPage() {
     </SidebarProvider>
   );
 }
-
-    
