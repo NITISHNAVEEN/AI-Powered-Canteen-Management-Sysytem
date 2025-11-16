@@ -1,5 +1,5 @@
 'use client';
-import { Clock, ShoppingCart } from 'lucide-react';
+import { Clock, ShoppingCart, History } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -11,7 +11,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -24,7 +24,7 @@ import { getRecommendedItems, RecommendedItemsOutput } from '@/ai/flows/get-reco
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCart } from '@/context/CartContext';
 import { Badge } from '@/components/ui/badge';
-
+import { Separator } from '@/components/ui/separator';
 
 type MenuItem = {
   id: string;
@@ -42,11 +42,57 @@ type Category = {
     name: string;
 }
 
+type Order = {
+    id: string;
+    userId: string;
+    status: 'Pending' | 'Processing' | 'Delivered' | 'Cancelled';
+    orderDate: { seconds: number; nanoseconds: number };
+    totalAmount: number;
+    tokenNumber?: number;
+};
+
+type StoredOrder = {
+    orderId: string;
+    userId: string;
+};
+
+
 type CategorizedItem = MenuItem & { image: string; imageHint: string };
 
 type GroupedItems = {
   [category: string]: CategorizedItem[];
 };
+
+function PastOrder({ storedOrder }: { storedOrder: StoredOrder }) {
+  const firestore = useFirestore();
+  const orderRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'users', storedOrder.userId, 'orders', storedOrder.orderId);
+  }, [firestore, storedOrder]);
+
+  const { data: order, isLoading } = useDoc<Order>(orderRef);
+
+  if (isLoading) {
+    return <Skeleton className="h-12 w-full" />;
+  }
+
+  if (!order) {
+    return null;
+  }
+
+  return (
+    <Link href={`/order/status?orderId=${order.id}&userId=${storedOrder.userId}`} className="block">
+      <div className="flex justify-between items-center p-2 rounded-md hover:bg-muted">
+        <div>
+          <p className="font-semibold">Order #{order.tokenNumber || 'N/A'}</p>
+          <p className="text-sm text-muted-foreground">Status: {order.status}</p>
+        </div>
+        <p className="text-sm font-semibold">₹{order.totalAmount.toFixed(2)}</p>
+      </div>
+    </Link>
+  );
+}
+
 
 export default function Home() {
   const router = useRouter();
@@ -54,6 +100,8 @@ export default function Home() {
   const firestore = useFirestore();
   const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const { addToCart, cartItems } = useCart();
+  const [pastOrders, setPastOrders] = useState<StoredOrder[]>([]);
+
 
   const [recommendations, setRecommendations] = useState<RecommendedItemsOutput | null>(null);
   const [areRecommendationsLoading, setAreRecommendationsLoading] = useState(true);
@@ -144,6 +192,14 @@ export default function Home() {
       const timeString = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
       setCurrentTime(timeString);
     }, 1000);
+
+    if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('pastOrders');
+        if (stored) {
+            setPastOrders(JSON.parse(stored));
+        }
+    }
+
     return () => clearInterval(timer);
   }, []);
 
@@ -199,6 +255,20 @@ export default function Home() {
           </div>
         </SidebarHeader>
         <SidebarContent>
+           {pastOrders.length > 0 && (
+                <Card className="m-2">
+                    <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                            <History className="h-4 w-4" />
+                            Your Past Orders
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-2 pb-2 space-y-1 max-h-48 overflow-y-auto">
+                        {pastOrders.map(order => <PastOrder key={order.orderId} storedOrder={order} />)}
+                    </CardContent>
+                </Card>
+            )}
+            <Separator className={pastOrders.length > 0 ? 'my-2' : ''}/>
           <SidebarMenu>
             {isCanteenOpen && categoriesInOrder.map((cat) => (
               <SidebarMenuItem key={cat}>

@@ -17,17 +17,17 @@ const useWindowSize = () => {
 
   useEffect(() => {
     function handleResize() {
-      setWindowSize({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
+      if (typeof window !== 'undefined') {
+        setWindowSize({
+          width: window.innerWidth,
+          height: window.innerHeight,
+        });
+      }
     }
 
-    if (typeof window !== 'undefined') {
-      window.addEventListener('resize', handleResize);
-      handleResize(); // Set initial size
-      return () => window.removeEventListener('resize', handleResize);
-    }
+    handleResize(); // Set initial size
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   return windowSize;
@@ -168,7 +168,7 @@ function OrderStatusContent() {
 export default function OrderStatusPage() {
     return (
         <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
-            <main className="flex min-h-screen flex-col items-center justify-center p-8 bg-muted/40">
+            <main className="flex min-h-screen flex-col items-center justify-center p-8 bg-background">
                 <OrderStatusContent />
             </main>
         </Suspense>

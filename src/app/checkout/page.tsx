@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useFirebase, addDocumentNonBlocking, setDoc, doc } from '@/firebase';
-import { collection, serverTimestamp, getDocs, query, where, QuerySnapshot, DocumentData } from 'firebase/firestore';
+import { collection, serverTimestamp, getDocs, query, where, QuerySnapshot, DocumentData, addDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
@@ -93,20 +93,28 @@ export default function CheckoutPage() {
       };
 
       const catererOrdersRef = collection(firestore, 'caterers', catererId, 'orders');
-      // Await the creation to get the document ID
-      const orderDocRef = await addDocumentNonBlocking(catererOrdersRef, orderData);
+      
+      // Use `addDoc` which is more standard for creating a new document with an auto-generated ID
+      const orderDocRef = await addDoc(catererOrdersRef, orderData);
       
       if (orderDocRef) {
         const userOrderDoc = doc(firestore, 'users', userId, 'orders', orderDocRef.id);
-        // Use set to ensure the ID is the same
-        setDoc(userOrderDoc, orderData);
+        await setDoc(userOrderDoc, orderData);
         
+        // Store order reference in local storage
+        if (typeof window !== 'undefined') {
+            const pastOrders = JSON.parse(localStorage.getItem('pastOrders') || '[]');
+            const newOrderRef = { orderId: orderDocRef.id, userId: userId };
+            // Keep only the last 5 orders
+            const updatedPastOrders = [newOrderRef, ...pastOrders].slice(0, 5); 
+            localStorage.setItem('pastOrders', JSON.stringify(updatedPastOrders));
+        }
+
         toast({
           title: 'Order Submitted!',
           description: `Your order has been sent to the caterer for confirmation.`,
         });
         clearCart();
-        // Redirect to a new status page with the order ID
         router.push(`/order/status?orderId=${orderDocRef.id}&userId=${userId}`);
       } else {
          throw new Error("Failed to create order document in caterer's collection.");
