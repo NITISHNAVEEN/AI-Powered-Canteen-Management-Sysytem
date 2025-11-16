@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useFirebase, addDocumentNonBlocking, setDoc, doc } from '@/firebase';
-import { collection, serverTimestamp } from 'firebase/firestore';
+import { collection, serverTimestamp, getDocs, query, where, QuerySnapshot, DocumentData } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
@@ -32,6 +32,28 @@ export default function CheckoutPage() {
       { imageUrl: 'https://picsum.photos/seed/placeholder/96/96', imageHint: 'food item' };
     return item.imageUrl || placeholder.imageUrl;
   }
+  
+  const generateUniqueToken = async (catererId: string): Promise<number> => {
+    if (!firestore) throw new Error("Firestore is not initialized.");
+
+    const ordersRef = collection(firestore, 'caterers', catererId, 'orders');
+    const q = query(ordersRef, where('status', 'in', ['Pending', 'Processing']));
+    
+    const querySnapshot = await getDocs(q);
+    const activeTokens = querySnapshot.docs.map(doc => doc.data().tokenNumber);
+
+    let tokenNumber;
+    let isUnique = false;
+
+    while (!isUnique) {
+      tokenNumber = Math.floor(Math.random() * 900) + 100;
+      if (!activeTokens.includes(tokenNumber)) {
+        isUnique = true;
+      }
+    }
+
+    return tokenNumber!;
+  };
 
   const handlePlaceOrder = async () => {
     if (!firestore || cartItems.length === 0) {
@@ -48,28 +70,28 @@ export default function CheckoutPage() {
         toast({ variant: 'destructive', title: 'Could not determine caterer.'});
         return;
     }
-
-    const tokenNumber = Math.floor(Math.random() * 900) + 100;
-    const userId = uuidv4(); // Generate a unique ID for this anonymous order
-
-    const orderData = {
-      userId: userId,
-      catererId: catererId,
-      items: cartItems.map(item => ({
-        id: item.id,
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-      })),
-      totalAmount: total,
-      status: 'Pending' as const,
-      orderDate: serverTimestamp(),
-      customerName: 'Anonymous User',
-      customerEmail: null,
-      tokenNumber: tokenNumber,
-    };
     
     try {
+      const tokenNumber = await generateUniqueToken(catererId);
+      const userId = uuidv4(); // Generate a unique ID for this anonymous order
+
+      const orderData = {
+        userId: userId,
+        catererId: catererId,
+        items: cartItems.map(item => ({
+          id: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+        totalAmount: total,
+        status: 'Pending' as const,
+        orderDate: serverTimestamp(),
+        customerName: 'Anonymous User',
+        customerEmail: null,
+        tokenNumber: tokenNumber,
+      };
+
       const catererOrdersRef = collection(firestore, 'caterers', catererId, 'orders');
       // Await the creation to get the document ID
       const orderDocRef = await addDocumentNonBlocking(catererOrdersRef, orderData);
