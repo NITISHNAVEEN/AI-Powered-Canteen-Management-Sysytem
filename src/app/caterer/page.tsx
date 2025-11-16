@@ -769,8 +769,8 @@ export default function CatererPage() {
           <Card className="mb-4">
             <CardContent className="p-4 flex items-center justify-between">
                 <div>
-                    <h3 className="font-semibold">Menu Availability</h3>
-                    <p className="text-sm text-muted-foreground">Quickly mark all items as unavailable or revert.</p>
+                    <h3 className="font-semibold">Open/Close canteen</h3>
+                    <p className="text-sm text-muted-foreground">Control opening and closing of your canteen in real-time</p>
                 </div>
                 <div className="flex gap-2">
                     {previousAvailabilityState ? (
