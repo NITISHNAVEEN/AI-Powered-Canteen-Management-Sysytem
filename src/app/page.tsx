@@ -1,5 +1,5 @@
 'use client';
-import { Clock, ShoppingCart, History, Search } from 'lucide-react';
+import { Clock, ShoppingCart, History, Search, Filter } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -27,6 +27,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import { useFilters } from '@/hooks/use-filters';
+
 
 type FoodType = 'veg' | 'non-veg';
 
@@ -128,6 +130,7 @@ export default function Home() {
   const { addToCart, cartItems } = useCart();
   const [pastOrders, setPastOrders] = useState<StoredOrder[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const { filters, isFiltersLoading } = useFilters();
 
 
   const [recommendations, setRecommendations] = useState<RecommendedItemsOutput | null>(null);
@@ -152,6 +155,14 @@ export default function Home() {
   
   const availableMenuItems = useMemo(() => {
     let items = menuItems?.filter(item => item.available) ?? [];
+    
+    if (filters) {
+        if (filters.foodType !== 'all') {
+            items = items.filter(item => item.foodType === filters.foodType);
+        }
+        items = items.filter(item => item.price >= filters.priceRange[0] && item.price <= filters.priceRange[1]);
+    }
+    
     if (searchQuery) {
         items = items.filter(item => 
             item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -159,7 +170,7 @@ export default function Home() {
         );
     }
     return items;
-  }, [menuItems, searchQuery]);
+  }, [menuItems, searchQuery, filters]);
 
   const isCanteenOpen = (menuItems?.filter(item => item.available) ?? []).length > 0;
 
@@ -273,7 +284,7 @@ export default function Home() {
     });
   };
   
-  if (isMenuLoading || areCategoriesLoading) {
+  if (isMenuLoading || areCategoriesLoading || isFiltersLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         Loading menu...
@@ -466,7 +477,7 @@ export default function Home() {
                   <CardContent className="p-12 text-center">
                     <h2 className="text-2xl font-bold mb-2">No results found</h2>
                      <p className="text-muted-foreground">
-                        {searchQuery ? `Your search for "${searchQuery}" did not match any available dishes.` : "No food items available at the moment."}
+                        {searchQuery ? `Your search for "${searchQuery}" did not match any available dishes.` : "No dishes match your current filter settings."}
                     </p>
                   </CardContent>
                 </Card>
@@ -478,7 +489,10 @@ export default function Home() {
         {isCanteenOpen && (
           <footer className="sticky bottom-0 flex items-center justify-between p-4 bg-background border-t">
             <Button variant="outline" asChild>
-              <Link href="/filters">Use filters</Link>
+              <Link href="/filters" className="flex items-center gap-2">
+                <Filter className="h-4 w-4"/>
+                Filters
+              </Link>
             </Button>
             <Button asChild>
               <Link href="/checkout" className="flex items-center gap-2">
