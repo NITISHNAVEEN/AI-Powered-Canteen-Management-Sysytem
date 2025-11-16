@@ -688,11 +688,11 @@ export default function CatererPage() {
                 <div className="flex gap-2">
                     {previousAvailabilityState ? (
                         <Button onClick={handleRevertAvailability} variant="outline">
-                            <Undo className="mr-2 h-4 w-4" /> Revert to Previous State
+                            <Undo className="mr-2 h-4 w-4" /> Open Canteen
                         </Button>
                     ) : (
                         <Button onClick={handleMarkAllUnavailable} variant="destructive">
-                            <X className="mr-2 h-4 w-4" /> Mark All Unavailable
+                            <X className="mr-2 h-4 w-4" /> Close Canteen
                         </Button>
                     )}
                 </div>
