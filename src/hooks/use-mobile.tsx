@@ -9,8 +9,8 @@ export function useIsMobile() {
     const checkSize = () => {
       setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
     }
-
-    checkSize() // Initial check
+    // Set the initial value after the component has mounted on the client.
+    checkSize() 
     window.addEventListener("resize", checkSize)
     return () => window.removeEventListener("resize", checkSize)
   }, [])
