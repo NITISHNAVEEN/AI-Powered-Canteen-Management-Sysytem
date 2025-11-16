@@ -81,22 +81,37 @@ const RatingForm = ({ order, item, itemIndex }: { order: Order; item: OrderItem,
 
         try {
             await runTransaction(firestore, async (transaction) => {
+                // --- All READ operations must come before any WRITE operations ---
+
+                // 1. Read the menu item and the order documents
                 const menuItemDoc = await transaction.get(menuItemRef);
+                const orderDoc = await transaction.get(userOrderRef);
+
                 if (!menuItemDoc.exists()) {
                     throw new Error("Menu item not found!");
                 }
+                if (!orderDoc.exists()) {
+                    throw new Error("Order not found!");
+                }
+
+                // --- All calculations should be done after reads ---
 
                 const oldRatingTotal = (menuItemDoc.data().averageRating || 0) * (menuItemDoc.data().numberOfRatings || 0);
                 const newNumberOfRatings = (menuItemDoc.data().numberOfRatings || 0) + 1;
                 const newAverageRating = (oldRatingTotal + rating) / newNumberOfRatings;
 
-                // Update the menu item with the new average rating
+                const currentItems = orderDoc.data().items;
+                currentItems[itemIndex].rated = true;
+
+                // --- All WRITE operations must come after all READ operations ---
+
+                // 2. Update the menu item with the new average rating
                 transaction.update(menuItemRef, {
                     averageRating: newAverageRating,
                     numberOfRatings: newNumberOfRatings,
                 });
                 
-                // Add the new rating to the ratings subcollection
+                // 3. Add the new rating to the ratings subcollection
                 const newRatingRef = doc(ratingColRef);
                 transaction.set(newRatingRef, {
                     userId: order.userId,
@@ -107,13 +122,8 @@ const RatingForm = ({ order, item, itemIndex }: { order: Order; item: OrderItem,
                     createdAt: serverTimestamp(),
                 });
 
-                // Update the 'rated' status in the order
-                const orderDoc = await transaction.get(userOrderRef);
-                if (orderDoc.exists()) {
-                    const currentItems = orderDoc.data().items;
-                    currentItems[itemIndex].rated = true;
-                    transaction.update(userOrderRef, { items: currentItems });
-                }
+                // 4. Update the 'rated' status in the order
+                transaction.update(userOrderRef, { items: currentItems });
             });
 
             toast({ title: 'Thank you for your review!' });
@@ -344,5 +354,3 @@ export default function OrderStatusPage() {
         </Suspense>
     )
 }
-
-    
