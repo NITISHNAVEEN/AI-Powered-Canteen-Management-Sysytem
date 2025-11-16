@@ -93,9 +93,9 @@ export default function DashboardPage() {
 
   const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Categories', 'Reviews'];
 
-  const { totalRevenue, totalOrders, salesData, popularItemsData, recentOrders } = useMemo(() => {
+  const { totalRevenue, totalOrders, salesData, popularItemsData, recentOrders, mostPopularItem } = useMemo(() => {
     if (!orders) {
-      return { totalRevenue: 0, totalOrders: 0, salesData: [], popularItemsData: [], recentOrders: [] };
+      return { totalRevenue: 0, totalOrders: 0, salesData: [], popularItemsData: [], recentOrders: [], mostPopularItem: null };
     }
 
     const validOrders = orders.filter(order => order.status !== 'Cancelled');
@@ -127,13 +127,15 @@ export default function DashboardPage() {
 
     const sortedItems = Array.from(itemCounts.entries())
         .sort((a, b) => b[1] - a[1]);
+    
+    const topDish = sortedItems.length > 0 ? { name: sortedItems[0][0], orders: sortedItems[0][1] } : null;
         
     const top4Items = sortedItems.slice(0, 4).map(([name, count]) => ({ name, orders: count }));
     const otherItemsCount = sortedItems.slice(4).reduce((sum, [, count]) => sum + count, 0);
 
-    const popularItems = [...top4Items];
+    const popularItemsForChart = [...top4Items];
     if (otherItemsCount > 0) {
-        popularItems.push({ name: 'Others', orders: otherItemsCount });
+        popularItemsForChart.push({ name: 'Others', orders: otherItemsCount });
     }
 
     // Recent orders (includes cancelled ones for display)
@@ -143,12 +145,8 @@ export default function DashboardPage() {
         date: format(new Date(order.orderDate.seconds * 1000), 'yyyy-MM-dd'),
     }));
 
-    return { totalRevenue: revenue, totalOrders: orderCount, salesData: dailySales, popularItemsData: popularItems, recentOrders: recent };
+    return { totalRevenue: revenue, totalOrders: orderCount, salesData: dailySales, popularItemsData: popularItemsForChart, recentOrders: recent, mostPopularItem: topDish };
   }, [orders]);
-  
-  const mostPopularItem = popularItemsData.length > 0 
-      ? popularItemsData.reduce((prev, current) => (prev.orders > current.orders) ? prev : current)
-      : null;
       
   if (areOrdersLoading) {
       return <div className="flex h-screen items-center justify-center">Loading Dashboard...</div>;
