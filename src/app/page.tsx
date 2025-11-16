@@ -315,7 +315,7 @@ export default function Home() {
               <Clock className="w-5 h-5" />
               <span>{currentTime} IST</span>
             </div>
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" style={{ backgroundColor: '#D7F5E1', color: 'black' }}>
                 <Link href="/caterer">View Caterer Site</Link>
             </Button>
           </div>

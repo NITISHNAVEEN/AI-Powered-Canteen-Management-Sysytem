@@ -203,7 +203,7 @@ export default function OrdersPage() {
               <Clock className="w-5 h-5" />
               <span>{currentTime} IST</span>
             </div>
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" style={{ backgroundColor: '#D7F5E1', color: 'black' }}>
                 <Link href="/">View User Site</Link>
             </Button>
           </div>
