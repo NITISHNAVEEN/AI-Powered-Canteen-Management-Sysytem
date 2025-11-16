@@ -3,8 +3,8 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow all reads and writes to all documents for public access.
-    // This is a new, simplified rule to resolve all permission errors.
+    // Force redeploy to fix permissions.
+    // This rule allows universal read and write access to all documents.
     match /{document=**} {
       allow read, write: if true;
     }
