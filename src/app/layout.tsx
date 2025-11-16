@@ -5,8 +5,8 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { CartProvider } from '@/context/CartContext';
 
 export const metadata: Metadata = {
-  title: 'Genesis Landing',
-  description: 'A new beginning for your next project.',
+  title: "Foodie's Hub",
+  description: 'Your college canteen, just a click away.',
 };
 
 export default function RootLayout({
