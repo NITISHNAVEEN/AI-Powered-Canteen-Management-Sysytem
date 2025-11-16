@@ -304,7 +304,7 @@ export default function Home() {
         </SidebarHeader>
         <SidebarContent>
            {pastOrders.length > 0 && (
-                <Card className="m-2" style={{ backgroundColor: '#F5DCD7' }}>
+                <Card className="m-2" style={{ backgroundColor: '#F2BAF5' }}>
                     <CardHeader>
                         <CardTitle className="text-base flex items-center gap-2">
                             <History className="h-4 w-4" />
@@ -345,7 +345,7 @@ export default function Home() {
               </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 p-2 border rounded-md bg-white">
+            <div className="flex items-center gap-2 p-2 border rounded-md" style={{ backgroundColor: '#CBF7DA' }}>
               <Clock className="w-5 h-5" />
               <span>{currentTime} IST</span>
             </div>
