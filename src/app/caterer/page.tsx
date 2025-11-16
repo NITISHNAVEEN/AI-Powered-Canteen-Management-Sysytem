@@ -56,6 +56,9 @@ import { useToast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Image from 'next/image';
 import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
+
+type FoodType = 'veg' | 'non-veg';
 
 type MenuItem = {
   id: string;
@@ -66,6 +69,7 @@ type MenuItem = {
   category: string;
   imageUrl?: string;
   catererId: string;
+  foodType: FoodType;
 };
 
 type Category = {
@@ -84,6 +88,27 @@ type AvailabilityState = {
     available: boolean;
 };
 
+const FoodTypeIndicator = ({ type }: { type: FoodType }) => {
+  return (
+    <div className="flex items-center justify-center">
+      <div
+        className={cn(
+          'w-4 h-4 border rounded-sm flex items-center justify-center',
+          type === 'veg' ? 'border-green-600' : 'border-red-600'
+        )}
+      >
+        <div
+          className={cn(
+            'w-2.5 h-2.5 rounded-full',
+            type === 'veg' ? 'bg-green-600' : 'bg-red-600'
+          )}
+        />
+      </div>
+    </div>
+  );
+};
+
+
 export default function CatererPage() {
   const router = useRouter();
   const firestore = useFirestore();
@@ -98,6 +123,7 @@ export default function CatererPage() {
   const [newItemDescription, setNewItemDescription] = useState('');
   const [newItemPrice, setNewItemPrice] = useState('');
   const [newItemCategory, setNewItemCategory] = useState('');
+  const [newItemFoodType, setNewItemFoodType] = useState<FoodType>('veg');
   const [addImageSource, setAddImageSource] = useState<ImageSource>('none');
   const [addImageUrl, setAddImageUrl] = useState('');
   const [addImageFile, setAddImageFile] = useState<File | null>(null);
@@ -109,6 +135,7 @@ export default function CatererPage() {
   const [editItemDescription, setEditItemDescription] = useState('');
   const [editItemPrice, setEditItemPrice] = useState('');
   const [editItemCategory, setEditItemCategory] = useState('');
+  const [editItemFoodType, setEditItemFoodType] = useState<FoodType>('veg');
   const [editImageSource, setEditImageSource] = useState<ImageSource>('none');
   const [editImageUrl, setEditImageUrl] = useState('');
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
@@ -185,6 +212,7 @@ export default function CatererPage() {
     setNewItemDescription('');
     setNewItemPrice('');
     setNewItemCategory('');
+    setNewItemFoodType('veg');
     setAddImageSource('none');
     setAddImageUrl('');
     setAddImageFile(null);
@@ -197,6 +225,7 @@ export default function CatererPage() {
     setEditItemDescription('');
     setEditItemPrice('');
     setEditItemCategory('');
+    setEditItemFoodType('veg');
     setEditImageSource('none');
     setEditImageUrl('');
     setEditImageFile(null);
@@ -282,6 +311,7 @@ export default function CatererPage() {
         price,
         available: true,
         category: newItemCategory,
+        foodType: newItemFoodType,
         ...(finalImageUrl && { imageUrl: finalImageUrl }),
       };
 
@@ -324,6 +354,7 @@ export default function CatererPage() {
         description: editItemDescription,
         price,
         category: editItemCategory,
+        foodType: editItemFoodType,
       };
       
       if (editImageSource !== 'none') {
@@ -356,6 +387,7 @@ export default function CatererPage() {
     setEditItemDescription(item.description);
     setEditItemPrice(String(item.price));
     setEditItemCategory(item.category);
+    setEditItemFoodType(item.foodType || 'veg');
     setEditImageUrl(item.imageUrl || '');
     setEditImageSource(item.imageUrl ? 'url' : 'none');
     setEditImageFile(null);
@@ -442,6 +474,23 @@ export default function CatererPage() {
                 ))}
             </SelectContent>
         </Select>
+      </div>
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label className="text-right">Type</Label>
+        <RadioGroup
+            value={newItemFoodType}
+            onValueChange={(value) => setNewItemFoodType(value as FoodType)}
+            className="col-span-3 flex gap-4"
+        >
+            <div className="flex items-center space-x-2">
+                <RadioGroupItem value="veg" id="add-type-veg" />
+                <Label htmlFor="add-type-veg">Veg</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+                <RadioGroupItem value="non-veg" id="add-type-nonveg" />
+                <Label htmlFor="add-type-nonveg">Non-Veg</Label>
+            </div>
+        </RadioGroup>
       </div>
       <div className="grid grid-cols-4 items-start gap-4">
         <Label className="text-right pt-2">Photo</Label>
@@ -544,6 +593,23 @@ export default function CatererPage() {
                 ))}
             </SelectContent>
         </Select>
+      </div>
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label className="text-right">Type</Label>
+        <RadioGroup
+            value={editItemFoodType}
+            onValueChange={(value) => setEditItemFoodType(value as FoodType)}
+            className="col-span-3 flex gap-4"
+        >
+            <div className="flex items-center space-x-2">
+                <RadioGroupItem value="veg" id="edit-type-veg" />
+                <Label htmlFor="edit-type-veg">Veg</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+                <RadioGroupItem value="non-veg" id="edit-type-nonveg" />
+                <Label htmlFor="edit-type-nonveg">Non-Veg</Label>
+            </div>
+        </RadioGroup>
       </div>
       <div className="grid grid-cols-4 items-start gap-4">
         <Label className="text-right pt-2">Photo</Label>
@@ -755,7 +821,10 @@ export default function CatererPage() {
                             />
                           )}
                           <div className="flex-1">
-                            <h3 className="text-lg font-bold">{item.name}</h3>
+                            <div className="flex items-center gap-2">
+                                <FoodTypeIndicator type={item.foodType} />
+                                <h3 className="text-lg font-bold">{item.name}</h3>
+                            </div>
                             <p className="text-sm text-muted-foreground">
                               {item.description}
                             </p>

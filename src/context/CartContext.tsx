@@ -2,6 +2,8 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
+type FoodType = 'veg' | 'non-veg';
+
 type MenuItem = {
   id: string;
   name: string;
@@ -11,6 +13,7 @@ type MenuItem = {
   catererId: string;
   imageUrl?: string;
   category: string;
+  foodType: FoodType;
 };
 
 type CartItem = MenuItem & {

@@ -25,6 +25,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCart } from '@/context/CartContext';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
+
+type FoodType = 'veg' | 'non-veg';
 
 type MenuItem = {
   id: string;
@@ -35,6 +38,7 @@ type MenuItem = {
   catererId: string;
   imageUrl?: string;
   category: string;
+  foodType: FoodType;
 };
 
 type Category = {
@@ -62,6 +66,27 @@ type CategorizedItem = MenuItem & { image: string; imageHint: string };
 type GroupedItems = {
   [category: string]: CategorizedItem[];
 };
+
+const FoodTypeIndicator = ({ type }: { type: FoodType }) => {
+  return (
+    <div className="flex items-center justify-center">
+      <div
+        className={cn(
+          'w-4 h-4 border rounded-sm flex items-center justify-center',
+          type === 'veg' ? 'border-green-600' : 'border-red-600'
+        )}
+      >
+        <div
+          className={cn(
+            'w-2.5 h-2.5 rounded-full',
+            type === 'veg' ? 'bg-green-600' : 'bg-red-600'
+          )}
+        />
+      </div>
+    </div>
+  );
+};
+
 
 function PastOrder({ storedOrder }: { storedOrder: StoredOrder }) {
   const firestore = useFirestore();
@@ -350,7 +375,10 @@ export default function Home() {
                               data-ai-hint={categorizedItem.imageHint}
                             />
                             <div className="flex-1">
-                              <h3 className="text-lg font-bold">{item.name}</h3>
+                               <div className="flex items-center gap-2">
+                                <FoodTypeIndicator type={item.foodType} />
+                                <h3 className="text-lg font-bold">{item.name}</h3>
+                              </div>
                               <p className="text-sm text-muted-foreground">{item.description}</p>
                             </div>
                             <div className="flex flex-col items-end gap-2">
@@ -388,7 +416,8 @@ export default function Home() {
                                     data-ai-hint={item.imageHint}
                                     />
                                     <div className="flex-1">
-                                    <div className="flex items-baseline gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <FoodTypeIndicator type={item.foodType} />
                                         <h3 className="text-lg font-bold">{item.name}</h3>
                                     </div>
                                     <p className="text-sm text-muted-foreground">
