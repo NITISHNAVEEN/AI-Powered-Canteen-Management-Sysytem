@@ -266,7 +266,6 @@ export default function OrdersPage() {
                                     >
                                         <SelectTrigger className={`w-[140px] ${statusColors[order.status]}`}>
                                             <div className="flex items-center gap-2">
-                                                {statusIcons[order.status]}
                                                 <SelectValue />
                                             </div>
                                         </SelectTrigger>
@@ -323,5 +322,7 @@ export default function OrdersPage() {
     </SidebarProvider>
   );
 }
+
+    
 
     
