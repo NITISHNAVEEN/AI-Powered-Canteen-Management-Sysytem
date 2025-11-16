@@ -216,7 +216,7 @@ export default function CatererPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Categories'];
+  const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Categories', 'Reviews'];
 
   const resetAddFormState = useCallback(() => {
     setNewItemName('');

@@ -82,7 +82,7 @@ export default function CategoriesPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Categories'];
+  const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Categories', 'Reviews'];
 
   const resetAddForm = useCallback(() => {
     setNewCategoryName('');

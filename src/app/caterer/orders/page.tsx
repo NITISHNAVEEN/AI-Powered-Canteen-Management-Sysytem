@@ -120,7 +120,7 @@ export default function OrdersPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Categories'];
+  const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Categories', 'Reviews'];
 
   const handleStatusChange = (order: Order, newStatus: Order['status']) => {
     if (!firestore) return;
@@ -265,7 +265,10 @@ export default function OrdersPage() {
                                         disabled={order.status === 'Delivered' || order.status === 'Cancelled'}
                                     >
                                         <SelectTrigger className={`w-[140px] ${statusColors[order.status]}`}>
-                                            <SelectValue />
+                                            <div className="flex items-center gap-2">
+                                                {statusIcons[order.status]}
+                                                <SelectValue />
+                                            </div>
                                         </SelectTrigger>
                                         <SelectContent>
                                             {getAvailableStatuses(order.status).map(status => (

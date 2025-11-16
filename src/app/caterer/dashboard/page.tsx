@@ -91,7 +91,7 @@ export default function DashboardPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Categories'];
+  const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Categories', 'Reviews'];
 
   const { totalRevenue, totalOrders, salesData, popularItemsData, recentOrders } = useMemo(() => {
     if (!orders) {
