@@ -145,14 +145,14 @@ function OrderStatusContent() {
           </div>
           <CardTitle className="mt-4 text-2xl font-bold">Order Confirmed!</CardTitle>
           <CardDescription>
-            Thank you for your purchase. Your order is being processed.
+            Thank you for your purchase. Your order is now {order.status.toLowerCase()}.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {order.tokenNumber && (
             <div className="my-4">
               <p className="text-sm text-muted-foreground">Your unique order token is:</p>
-              <p className="text-6xl font-bold tracking-wider">{order.tokenNumber}</p>
+              <p className="text-8xl font-bold tracking-wider text-primary">{order.tokenNumber}</p>
             </div>
           )}
           <Button asChild>
