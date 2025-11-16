@@ -1,6 +1,13 @@
 'use client';
 import { Clock, ShoppingCart, History, Search, Filter } from 'lucide-react';
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import {
   Sidebar,
   SidebarContent,
   SidebarHeader,
@@ -28,6 +35,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { useFilters } from '@/hooks/use-filters';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 type FoodType = 'veg' | 'non-veg';
@@ -131,6 +139,7 @@ export default function Home() {
   const [pastOrders, setPastOrders] = useState<StoredOrder[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const { filters, isFiltersLoading } = useFilters();
+  const isMobile = useIsMobile();
 
 
   const [recommendations, setRecommendations] = useState<RecommendedItemsOutput | null>(null);
@@ -284,6 +293,22 @@ export default function Home() {
     });
   };
   
+  const pastOrdersComponent = pastOrders.length > 0 && (
+    <Card className="m-2" style={{ backgroundColor: '#F2BAF5' }}>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <History className="h-4 w-4" />
+          Your Past Orders
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="px-2 pb-2 space-y-1 max-h-48 overflow-y-auto">
+        {pastOrders.map((order) => (
+          <PastOrder key={order.orderId} storedOrder={order} />
+        ))}
+      </CardContent>
+    </Card>
+  );
+
   if (isMenuLoading || areCategoriesLoading || isFiltersLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -303,19 +328,7 @@ export default function Home() {
           </div>
         </SidebarHeader>
         <SidebarContent>
-           {pastOrders.length > 0 && (
-                <Card className="m-2" style={{ backgroundColor: '#F2BAF5' }}>
-                    <CardHeader>
-                        <CardTitle className="text-base flex items-center gap-2">
-                            <History className="h-4 w-4" />
-                            Your Past Orders
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="px-2 pb-2 space-y-1 max-h-48 overflow-y-auto">
-                        {pastOrders.map(order => <PastOrder key={order.orderId} storedOrder={order} />)}
-                    </CardContent>
-                </Card>
-            )}
+           {pastOrdersComponent}
             <Separator className={pastOrders.length > 0 ? 'my-2' : ''}/>
           <SidebarMenu>
             {isCanteenOpen && categoriesInOrder.map((cat) => (
@@ -331,8 +344,9 @@ export default function Home() {
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <header className="flex items-center justify-between p-4 border-b">
+        <header className="flex items-center justify-between p-4 border-t" style={{ backgroundColor: '#F9E3FA' }}>
           <div className="flex items-center gap-4">
+              <SidebarTrigger className="md:hidden" />
               <div className="relative w-full max-w-md">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -345,11 +359,30 @@ export default function Home() {
               </div>
           </div>
           <div className="flex items-center gap-4">
+            {isMobile && pastOrders.length > 0 && (
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <History className="h-4 w-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+                  <SheetHeader>
+                    <SheetTitle>Your Past Orders</SheetTitle>
+                  </SheetHeader>
+                  <div className="py-4 space-y-2">
+                    {pastOrders.map((order) => (
+                      <PastOrder key={order.orderId} storedOrder={order} />
+                    ))}
+                  </div>
+                </SheetContent>
+              </Sheet>
+            )}
             <div className="flex items-center gap-2 p-2 border rounded-md" style={{ backgroundColor: '#CBF7DA' }}>
               <Clock className="w-5 h-5" />
               <span>{currentTime} IST</span>
             </div>
-            <Button asChild variant="outline" style={{ backgroundColor: '#D7F5E1', color: 'black' }}>
+            <Button asChild variant="outline" style={{ backgroundColor: '#D7F5E1', color: 'black' }} className="hidden md:flex">
                 <Link href="/caterer">View Caterer Site</Link>
             </Button>
           </div>
