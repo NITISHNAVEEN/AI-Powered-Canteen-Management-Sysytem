@@ -7,7 +7,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useFirebase, addDocumentNonBlocking, setDocumentNonBlocking, doc } from '@/firebase';
+import { useFirebase, addDocumentNonBlocking, setDoc, doc } from '@/firebase';
 import { collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -76,8 +76,8 @@ export default function CheckoutPage() {
       
       if (orderDocRef) {
         const userOrderDoc = doc(firestore, 'users', userId, 'orders', orderDocRef.id);
-        // Use setDocumentNonBlocking to ensure the ID is the same
-        setDocumentNonBlocking(userOrderDoc, orderData, { merge: false });
+        // Use set to ensure the ID is the same
+        setDoc(userOrderDoc, orderData);
         
         toast({
           title: 'Order Submitted!',
@@ -86,6 +86,8 @@ export default function CheckoutPage() {
         clearCart();
         // Redirect to a new status page with the order ID
         router.push(`/order/status?orderId=${orderDocRef.id}&userId=${userId}`);
+      } else {
+         throw new Error("Failed to create order document in caterer's collection.");
       }
     } catch (error) {
       console.error("Order placement failed:", error);

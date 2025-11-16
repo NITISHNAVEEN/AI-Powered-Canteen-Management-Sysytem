@@ -57,7 +57,7 @@ function OrderStatusContent() {
   const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
-    if (order?.status && order.status !== 'Pending' && order.status !== 'Cancelled') {
+    if (order?.status && ['Processing', 'Delivered'].includes(order.status)) {
         setShowConfetti(true);
     }
   }, [order?.status])
@@ -157,9 +157,6 @@ function OrderStatusContent() {
           )}
           <Button asChild>
               <Link href="/">Continue Shopping</Link>
-          </Button>
-           <Button variant="outline" asChild>
-              <Link href="/profile">View Orders</Link>
           </Button>
         </CardContent>
       </Card>

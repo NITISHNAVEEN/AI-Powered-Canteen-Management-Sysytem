@@ -127,7 +127,7 @@ export default function OrdersPage() {
 
     if (order.userId) {
         const userOrderDocRef = doc(firestore, 'users', order.userId, 'orders', order.id);
-        setDoc(userOrderDocRef, { status: newStatus }, { merge: true });
+        updateDocumentNonBlocking(userOrderDocRef, { status: newStatus });
     }
 
     toast({ title: 'Order status updated!' });
@@ -155,9 +155,9 @@ export default function OrdersPage() {
   const getAvailableStatuses = (currentStatus: Order['status']): Order['status'][] => {
     switch (currentStatus) {
         case 'Pending':
-            return ['Processing', 'Cancelled'];
+            return ['Pending', 'Processing', 'Cancelled'];
         case 'Processing':
-            return ['Delivered', 'Cancelled'];
+            return ['Processing', 'Delivered', 'Cancelled'];
         case 'Delivered':
             return ['Delivered'];
         case 'Cancelled':
