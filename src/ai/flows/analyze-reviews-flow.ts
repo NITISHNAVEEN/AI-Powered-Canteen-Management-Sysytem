@@ -68,7 +68,7 @@ const analyzeReviewsFlow = ai.defineFlow(
   {
     name: 'analyzeReviewsFlow',
     inputSchema: AnalyzeReviewsInputSchema,
-    outputSchema: AnalyzeReviewsOuptutSchema,
+    outputSchema: AnalyzeReviewsOutputSchema,
   },
   async (input) => {
     if (input.reviews.length === 0) {
