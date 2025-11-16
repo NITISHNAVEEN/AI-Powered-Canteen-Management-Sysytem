@@ -1,5 +1,5 @@
 'use client';
-import { Clock, Loader, MessageSquareQuote, ChevronsUpDown } from 'lucide-react';
+import { Clock, Loader, MessageSquareQuote, ChevronsUpDown, Check } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -49,7 +49,11 @@ const AnalysisSection = ({ content }: { content: string }) => {
   if (!content || content.startsWith('No')) {
     return <p className="text-muted-foreground">{content}</p>;
   }
-  return <p>{content}</p>;
+  // Replace bullet points with paragraphs for better readability
+  const paragraphs = content.split('\n').filter(p => p.trim() !== '').map((p, index) => (
+    <p key={index} className="mb-2 last:mb-0">{p.replace(/^\s*-\s*|\d\.\s*/, '')}</p>
+  ));
+  return <div>{paragraphs}</div>;
 };
 
 
@@ -187,12 +191,17 @@ export default function ReviewsPage() {
                                         <CommandItem
                                             key={item.id}
                                             value={item.name}
-                                            onSelect={(currentValue) => {
-                                                const selected = menuItems.find(mi => mi.name.toLowerCase() === currentValue.toLowerCase())
-                                                setSelectedMenuItemId(selected?.id === selectedMenuItemId ? null : selected?.id || null);
+                                            onSelect={() => {
+                                                setSelectedMenuItemId(item.id === selectedMenuItemId ? null : item.id);
                                                 setPopoverOpen(false);
                                             }}
                                         >
+                                          <Check
+                                            className={cn(
+                                              "mr-2 h-4 w-4",
+                                              selectedMenuItemId === item.id ? "opacity-100" : "opacity-0"
+                                            )}
+                                          />
                                             {item.name}
                                         </CommandItem>
                                     ))}
