@@ -256,7 +256,7 @@ export default function Home() {
         </SidebarHeader>
         <SidebarContent>
            {pastOrders.length > 0 && (
-                <Card className="m-2">
+                <Card className="m-2" style={{ backgroundColor: '#FC7E65' }}>
                     <CardHeader>
                         <CardTitle className="text-base flex items-center gap-2">
                             <History className="h-4 w-4" />
