@@ -264,10 +264,7 @@ export default function OrdersPage() {
                                         disabled={order.status === 'Delivered' || order.status === 'Cancelled'}
                                     >
                                         <SelectTrigger className={`w-[140px] ${statusColors[order.status]}`}>
-                                            <div className="flex items-center gap-2">
-                                                {statusIcons[order.status]}
-                                                <SelectValue />
-                                            </div>
+                                            <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {getAvailableStatuses(order.status).map(status => (
