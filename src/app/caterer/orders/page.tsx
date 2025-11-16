@@ -157,7 +157,7 @@ export default function OrdersPage() {
         case 'Pending':
             return ['Pending', 'Processing', 'Cancelled'];
         case 'Processing':
-            return ['Processing', 'Delivered', 'Cancelled'];
+            return ['Processing', 'Delivered'];
         case 'Delivered':
             return ['Delivered'];
         case 'Cancelled':
