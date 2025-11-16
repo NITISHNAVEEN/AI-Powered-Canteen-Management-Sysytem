@@ -1,5 +1,5 @@
 'use client';
-import { Clock, PlusCircle, Trash2, Edit, Check, X, Undo } from 'lucide-react';
+import { Clock, PlusCircle, Trash2, Edit, Check, X, Undo, Search } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -116,6 +116,7 @@ export default function CatererPage() {
   const { toast } = useToast();
   
   const catererId = 'demo-caterer';
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Add Item State
   const [isAddOpen, setAddOpen] = useState(false);
@@ -158,9 +159,17 @@ export default function CatererPage() {
     useCollection<MenuItem>(menuItemsRef);
   const { data: categories, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesRef);
 
+  const filteredMenuItems = useMemo(() => {
+    if (!menuItems) return [];
+    return menuItems.filter(item => 
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [menuItems, searchQuery]);
+
   const groupedMenuItems = useMemo(() => {
-    if (!menuItems) return {};
-    return menuItems.reduce((acc, item) => {
+    if (!filteredMenuItems) return {};
+    return filteredMenuItems.reduce((acc, item) => {
       const category = item.category || 'Uncategorized';
       if (!acc[category]) {
         acc[category] = [];
@@ -168,14 +177,14 @@ export default function CatererPage() {
       acc[category].push(item);
       return acc;
     }, {} as GroupedMenuItems);
-  }, [menuItems]);
+  }, [filteredMenuItems]);
   
   const categoryOrder = useMemo(() => {
-      if (!menuItems) return [];
+      if (!filteredMenuItems) return [];
       
       const definedCategoryNames = categories ? categories.map(c => c.name).sort() : [];
       
-      const allCategoriesInMenu = [...new Set(menuItems.map(item => item.category || 'Uncategorized'))];
+      const allCategoriesInMenu = [...new Set(filteredMenuItems.map(item => item.category || 'Uncategorized'))];
       
       const orderedCategories = definedCategoryNames.filter(c => allCategoriesInMenu.includes(c));
       
@@ -193,7 +202,7 @@ export default function CatererPage() {
       }
       
       return orderedCategories;
-  }, [categories, menuItems]);
+  }, [categories, filteredMenuItems]);
 
 
   useEffect(() => {
@@ -693,7 +702,7 @@ export default function CatererPage() {
         <header className="flex items-center justify-between p-4 border-b">
           <SidebarTrigger />
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 p-2 border rounded-md" style={{ backgroundColor: '#CBF7DA' }}>
+            <div className="flex items-center gap-2 p-2 border rounded-md bg-white">
               <Clock className="w-5 h-5" />
               <span>{currentTime} IST</span>
             </div>
@@ -706,43 +715,55 @@ export default function CatererPage() {
         <main className="flex-1 p-4 overflow-y-auto">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold">Menu Items</h1>
-            <Dialog open={isAddOpen} onOpenChange={(isOpen) => { setAddOpen(isOpen); if (!isOpen) resetAddFormState(); }}>
-              <DialogTrigger asChild>
-                <Button>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Add Menu Item
-                </Button>
-              </DialogTrigger>
-              {isAddOpen && (
-                <DialogContent className="sm:max-w-[425px]">
-                  <DialogHeader>
-                    <DialogTitle>Add New Menu Item</DialogTitle>
-                  </DialogHeader>
-                  {renderAddFormContent()}
-                  <DialogFooter>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={resetAddFormState}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      onClick={handleAddMenuItem}
-                      disabled={
-                        !newItemName ||
-                        !newItemDescription ||
-                        !newItemPrice ||
-                        !newItemCategory
-                      }
-                    >
-                      Save Item
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              )}
-            </Dialog>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search menu..."
+                  className="pl-8 sm:w-[300px] md:w-[200px] lg:w-[300px]"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <Dialog open={isAddOpen} onOpenChange={(isOpen) => { setAddOpen(isOpen); if (!isOpen) resetAddFormState(); }}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Menu Item
+                  </Button>
+                </DialogTrigger>
+                {isAddOpen && (
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Add New Menu Item</DialogTitle>
+                    </DialogHeader>
+                    {renderAddFormContent()}
+                    <DialogFooter>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={resetAddFormState}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        onClick={handleAddMenuItem}
+                        disabled={
+                          !newItemName ||
+                          !newItemDescription ||
+                          !newItemPrice ||
+                          !newItemCategory
+                        }
+                      >
+                        Save Item
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                )}
+              </Dialog>
+            </div>
           </div>
           
           <Card className="mb-4">
@@ -802,7 +823,7 @@ export default function CatererPage() {
             </Dialog>
 
           <div className="grid gap-4">
-             {menuItems && menuItems.length > 0 ? (
+             {filteredMenuItems && filteredMenuItems.length > 0 ? (
               categoryOrder.map((category) => (
                 groupedMenuItems[category] && (
                 <div key={category}>
@@ -885,7 +906,7 @@ export default function CatererPage() {
             ) : (
               <Card>
                 <CardContent className="p-4 text-center">
-                  You haven&apos;t added any menu items yet.
+                  {searchQuery ? `No menu items found for "${searchQuery}".` : "You haven't added any menu items yet."}
                 </CardContent>
               </Card>
             )}
@@ -895,5 +916,7 @@ export default function CatererPage() {
     </SidebarProvider>
   );
 }
+
+    
 
     

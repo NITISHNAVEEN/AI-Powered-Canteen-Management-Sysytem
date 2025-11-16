@@ -1,5 +1,5 @@
 'use client';
-import { Clock, ShoppingCart, History } from 'lucide-react';
+import { Clock, ShoppingCart, History, Search } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -26,6 +26,7 @@ import { useCart } from '@/context/CartContext';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
 
 type FoodType = 'veg' | 'non-veg';
 
@@ -126,6 +127,7 @@ export default function Home() {
   const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const { addToCart, cartItems } = useCart();
   const [pastOrders, setPastOrders] = useState<StoredOrder[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
 
   const [recommendations, setRecommendations] = useState<RecommendedItemsOutput | null>(null);
@@ -149,10 +151,17 @@ export default function Home() {
   const { data: categoriesData, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
   
   const availableMenuItems = useMemo(() => {
-    return menuItems?.filter(item => item.available) ?? [];
-  }, [menuItems]);
+    let items = menuItems?.filter(item => item.available) ?? [];
+    if (searchQuery) {
+        items = items.filter(item => 
+            item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            item.description.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }
+    return items;
+  }, [menuItems, searchQuery]);
 
-  const isCanteenOpen = availableMenuItems.length > 0;
+  const isCanteenOpen = (menuItems?.filter(item => item.available) ?? []).length > 0;
 
   const groupedItems = useMemo((): GroupedItems => {
     if (!availableMenuItems) {
@@ -183,11 +192,12 @@ export default function Home() {
   }, [availableMenuItems]);
   
   const categoriesInOrder = useMemo(() => {
-    if (!availableMenuItems || !categoriesData) return [];
+    const allAvailableMenuItems = menuItems?.filter(item => item.available) ?? [];
+    if (!allAvailableMenuItems || !categoriesData) return [];
     
     const definedCategoryNames = categoriesData.map(c => c.name).sort();
     
-    const allCategoriesInMenu = [...new Set(availableMenuItems.map(item => item.category || 'Uncategorized'))];
+    const allCategoriesInMenu = [...new Set(allAvailableMenuItems.map(item => item.category || 'Uncategorized'))];
     
     const orderedCategories = definedCategoryNames.filter(c => allCategoriesInMenu.includes(c));
     
@@ -204,12 +214,13 @@ export default function Home() {
     }
     
     return orderedCategories;
-}, [categoriesData, availableMenuItems]);
+}, [categoriesData, menuItems]);
 
   const recommendedItems = useMemo(() => {
-    if (!recommendations || !availableMenuItems) return [];
-    return availableMenuItems.filter(item => recommendations.recommendedItemIds.includes(item.id));
-  }, [recommendations, availableMenuItems]);
+    const allAvailableItems = menuItems?.filter(item => item.available) ?? [];
+    if (!recommendations || !allAvailableItems) return [];
+    return allAvailableItems.filter(item => recommendations.recommendedItemIds.includes(item.id));
+  }, [recommendations, menuItems]);
 
 
   useEffect(() => {
@@ -229,13 +240,14 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (isCanteenOpen && availableMenuItems && availableMenuItems.length > 0 && !recommendationsFetched) {
+    const allAvailableItems = menuItems?.filter(item => item.available) ?? [];
+    if (isCanteenOpen && allAvailableItems.length > 0 && !recommendationsFetched) {
       const fetchRecommendations = async () => {
         setAreRecommendationsLoading(true);
         try {
           const aiRecommendations = await getRecommendedItems({
             currentTime: new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' }),
-            menuItems: availableMenuItems.map(({ id, name, description }) => ({ id, name, description })),
+            menuItems: allAvailableItems.map(({ id, name, description }) => ({ id, name, description })),
           });
           setRecommendations(aiRecommendations);
           setRecommendationsFetched(true); // Mark as fetched
@@ -251,7 +263,7 @@ export default function Home() {
       // If there are no menu items, or already fetched, don't show loading state
       setAreRecommendationsLoading(false);
     }
-  }, [availableMenuItems, isMenuLoading, recommendationsFetched, isCanteenOpen]);
+  }, [menuItems, isMenuLoading, recommendationsFetched, isCanteenOpen]);
 
 
   const handleCategoryClick = (categoryValue: string) => {
@@ -309,9 +321,21 @@ export default function Home() {
       </Sidebar>
       <SidebarInset>
         <header className="flex items-center justify-between p-4 border-b">
-          <SidebarTrigger />
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 p-2 border rounded-md" style={{ backgroundColor: '#CBF7DA' }}>
+              <SidebarTrigger />
+              <div className="relative w-full max-w-md">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search for dishes..."
+                  className="pl-8 sm:w-[300px] md:w-[200px] lg:w-[300px]"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 p-2 border rounded-md bg-white">
               <Clock className="w-5 h-5" />
               <span>{currentTime} IST</span>
             </div>
@@ -332,7 +356,7 @@ export default function Home() {
           ) : (
             <>
               {/* Recommendations Section */}
-              {areRecommendationsLoading && (
+              {!searchQuery && areRecommendationsLoading && (
                 <div className="mb-8">
                   <Skeleton className="h-8 w-1/3 mb-4" />
                   <div className="grid grid-cols-1 gap-4">
@@ -355,13 +379,14 @@ export default function Home() {
                 </div>
               )}
 
-              {!areRecommendationsLoading && recommendedItems.length > 0 && recommendations && (
+              {!searchQuery && !areRecommendationsLoading && recommendedItems.length > 0 && recommendations && (
                 <div className="mb-8">
                   <h2 className="text-2xl font-bold mb-2">Recommended for you</h2>
                   <p className="text-muted-foreground mb-4">{recommendations.recommendationReason}</p>
                   <div className="grid grid-cols-1 gap-4">
                     {recommendedItems.map((item) => {
-                      const categorizedItem = groupedItems[item.category]?.find(gi => gi.id === item.id);
+                       const allGroupedItems = (Object.values(groupedItems).flat());
+                       const categorizedItem = allGroupedItems.find(gi => gi.id === item.id);
                       if (!categorizedItem) return null;
                       return (
                         <Card key={item.id} className={!item.available ? 'opacity-50 pointer-events-none' : ''}>
@@ -394,7 +419,7 @@ export default function Home() {
               )}
 
 
-              {categoriesInOrder && categoriesInOrder.length > 0 ? (
+              {Object.keys(groupedItems).length > 0 ? (
                 categoriesInOrder.map(category => (
                     groupedItems[category] && groupedItems[category].length > 0 && (
                         <div 
@@ -439,8 +464,11 @@ export default function Home() {
                 ))
               ) : (
                 <Card>
-                  <CardContent className="p-4 text-center">
-                    No food items available at the moment.
+                  <CardContent className="p-12 text-center">
+                    <h2 className="text-2xl font-bold mb-2">No results found</h2>
+                     <p className="text-muted-foreground">
+                        {searchQuery ? `Your search for "${searchQuery}" did not match any available dishes.` : "No food items available at the moment."}
+                    </p>
                   </CardContent>
                 </Card>
               )}
@@ -470,3 +498,5 @@ export default function Home() {
     </SidebarProvider>
   );
 }
+
+    
