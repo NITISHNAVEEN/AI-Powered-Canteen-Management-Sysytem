@@ -98,8 +98,10 @@ export default function DashboardPage() {
       return { totalRevenue: 0, totalOrders: 0, salesData: [], popularItemsData: [], recentOrders: [] };
     }
 
-    const revenue = orders.reduce((acc, order) => acc + order.totalAmount + (order.packagingFee || 0), 0);
-    const orderCount = orders.length;
+    const validOrders = orders.filter(order => order.status !== 'Cancelled');
+
+    const revenue = validOrders.reduce((acc, order) => acc + order.totalAmount + (order.packagingFee || 0), 0);
+    const orderCount = validOrders.length;
     
     // Sales data for the last 7 days
     const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -109,7 +111,7 @@ export default function DashboardPage() {
     }).reverse();
 
     const dailySales = last7Days.map(dateStr => {
-        const dayRevenue = orders
+        const dayRevenue = validOrders
             .filter(order => format(new Date(order.orderDate.seconds * 1000), 'yyyy-MM-dd') === dateStr)
             .reduce((sum, order) => sum + order.totalAmount + (order.packagingFee || 0), 0);
         return { name: format(new Date(dateStr), 'EEE'), revenue: dayRevenue };
@@ -117,18 +119,24 @@ export default function DashboardPage() {
 
     // Popular items
     const itemCounts = new Map<string, number>();
-    orders.forEach(order => {
+    validOrders.forEach(order => {
         order.items.forEach(item => {
             itemCounts.set(item.name, (itemCounts.get(item.name) || 0) + item.quantity);
         });
     });
 
-    const popularItems = Array.from(itemCounts.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([name, count]) => ({ name, orders: count }));
+    const sortedItems = Array.from(itemCounts.entries())
+        .sort((a, b) => b[1] - a[1]);
+        
+    const top4Items = sortedItems.slice(0, 4).map(([name, count]) => ({ name, orders: count }));
+    const otherItemsCount = sortedItems.slice(4).reduce((sum, [, count]) => sum + count, 0);
 
-    // Recent orders
+    const popularItems = [...top4Items];
+    if (otherItemsCount > 0) {
+        popularItems.push({ name: 'Others', orders: otherItemsCount });
+    }
+
+    // Recent orders (includes cancelled ones for display)
     const sortedOrders = [...orders].sort((a, b) => b.orderDate.seconds - a.orderDate.seconds).slice(0, 5);
     const recent = sortedOrders.map(order => ({
         ...order,
@@ -193,17 +201,17 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">₹{totalRevenue > 0 ? totalRevenue.toFixed(2) : 'N/A'}</div>
-                <p className="text-xs text-muted-foreground">Based on all-time orders</p>
+                <p className="text-xs text-muted-foreground">Excludes cancelled orders</p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+                <CardTitle className="text-sm font-medium">Fulfilled Orders</CardTitle>
                 <Package className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">+{totalOrders > 0 ? totalOrders : 'N/A'}</div>
-                 <p className="text-xs text-muted-foreground">Total orders placed</p>
+                 <p className="text-xs text-muted-foreground">Total non-cancelled orders</p>
               </CardContent>
             </Card>
             <Card>
