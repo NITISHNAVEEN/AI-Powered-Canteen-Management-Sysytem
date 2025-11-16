@@ -322,7 +322,6 @@ export default function Home() {
       <SidebarInset>
         <header className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-4">
-              <SidebarTrigger />
               <div className="relative w-full max-w-md">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -498,5 +497,3 @@ export default function Home() {
     </SidebarProvider>
   );
 }
-
-    
