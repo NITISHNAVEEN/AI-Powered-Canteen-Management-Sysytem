@@ -3,7 +3,7 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Attempting to force another redeploy to fix permissions.
+    // Forcing another redeployment to fix persistent permission errors.
     // This rule allows universal read and write access to all documents.
     match /{document=**} {
       allow read, write: if true;
