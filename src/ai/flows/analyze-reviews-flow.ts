@@ -26,13 +26,13 @@ export type AnalyzeReviewsInput = z.infer<typeof AnalyzeReviewsInputSchema>;
 const AnalyzeReviewsOutputSchema = z.object({
   positiveSummary: z
     .string()
-    .describe('A brief, bulleted summary of the positive feedback from the reviews.'),
+    .describe('A brief, paragraph-style summary of the positive feedback from the reviews.'),
   negativeSummary: z
     .string()
-    .describe('A brief, bulleted summary of the negative feedback and criticisms.'),
+    .describe('A brief, paragraph-style summary of the negative feedback and criticisms.'),
   improvementSuggestions: z
     .string()
-    .describe('A brief, bulleted list of actionable suggestions for improvement based on the feedback.'),
+    .describe('A brief, paragraph-style list of actionable suggestions for improvement based on the feedback.'),
 });
 export type AnalyzeReviewsOutput = z.infer<typeof AnalyzeReviewsOutputSchema>;
 
@@ -55,10 +55,10 @@ Customer Reviews:
 - Rating: {{rating}}/5, Review: "{{{review}}}"
 {{/each}}
 
-Based on the reviews provided, generate the following analysis:
-1.  **Positive Summary:** Create a short, bulleted list summarizing what customers love about the dish.
-2.  **Negative Summary:** Create a short, bulleted list summarizing the common complaints or criticisms.
-3.  **Improvement Suggestions:** Create a short, bulleted list of concrete, actionable suggestions for the caterer to improve the dish.
+Based on the reviews provided, generate the following analysis in plain paragraphs, not bullet points:
+1.  **Positive Summary:** Create a short paragraph summarizing what customers love about the dish.
+2.  **Negative Summary:** Create a short paragraph summarizing the common complaints or criticisms.
+3.  **Improvement Suggestions:** Create a short paragraph of concrete, actionable suggestions for the caterer to improve the dish.
 
 Focus on recurring themes and specific feedback. Be direct and clear. If there are no reviews, state that clearly in each field.
 `,

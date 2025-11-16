@@ -1,4 +1,3 @@
-// This is a new file
 'use client';
 import { Clock, Loader, MessageSquareQuote } from 'lucide-react';
 import {
@@ -38,18 +37,11 @@ type Rating = {
   review?: string;
 };
 
-const BulletedList = ({ content }: { content: string }) => {
-  const items = content.split('*').map(s => s.trim()).filter(Boolean);
-  if (items.length === 0 || (items.length === 1 && !items[0])) {
-    return <p className="text-muted-foreground">No specific feedback provided.</p>;
+const AnalysisSection = ({ content }: { content: string }) => {
+  if (!content || content.startsWith('No')) {
+    return <p className="text-muted-foreground">{content}</p>;
   }
-  return (
-    <ul className="list-disc pl-5 space-y-1">
-      {items.map((item, index) => (
-        <li key={index}>{item}</li>
-      ))}
-    </ul>
-  );
+  return <p>{content}</p>;
 };
 
 
@@ -199,7 +191,7 @@ export default function ReviewsPage() {
                         <CardDescription>What customers loved about "{selectedMenuItem?.name}".</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <BulletedList content={analysis.positiveSummary} />
+                        <AnalysisSection content={analysis.positiveSummary} />
                     </CardContent>
                 </Card>
                  <Card>
@@ -208,7 +200,7 @@ export default function ReviewsPage() {
                         <CardDescription>What customers thought could be better.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <BulletedList content={analysis.negativeSummary} />
+                        <AnalysisSection content={analysis.negativeSummary} />
                     </CardContent>
                 </Card>
                  <Card>
@@ -217,7 +209,7 @@ export default function ReviewsPage() {
                         <CardDescription>Actionable ideas to make "{selectedMenuItem?.name}" even better.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <BulletedList content={analysis.improvementSuggestions} />
+                        <AnalysisSection content={analysis.improvementSuggestions} />
                     </CardContent>
                 </Card>
               </div>
