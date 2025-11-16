@@ -1,5 +1,5 @@
 'use client';
-import { Clock, Check, X, Truck, Hash } from 'lucide-react';
+import { Clock, Check, X, Truck, Hash, Trash2 } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking, setDoc } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking, setDoc, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import {
   Card,
@@ -38,6 +38,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -111,18 +122,34 @@ export default function OrdersPage() {
   const handleStatusChange = (order: Order, newStatus: Order['status']) => {
     if (!firestore) return;
     
-    // Update the caterer's order document
     const catererOrderDocRef = doc(firestore, 'caterers', catererId, 'orders', order.id);
     updateDocumentNonBlocking(catererOrderDocRef, { status: newStatus });
 
-    // Update the user's order document (if userId exists)
     if (order.userId) {
         const userOrderDocRef = doc(firestore, 'users', order.userId, 'orders', order.id);
-        // Use setDoc with merge to ensure the user's order is created or updated
         setDoc(userOrderDocRef, { status: newStatus }, { merge: true });
     }
 
     toast({ title: 'Order status updated!' });
+  };
+  
+  const handleDeleteOrder = (order: Order) => {
+    if (!firestore) return;
+    
+    // Delete from caterer's collection
+    const catererOrderDocRef = doc(firestore, 'caterers', catererId, 'orders', order.id);
+    deleteDocumentNonBlocking(catererOrderDocRef);
+
+    // Delete from user's collection
+    if (order.userId) {
+        const userOrderDocRef = doc(firestore, 'users', order.userId, 'orders', order.id);
+        deleteDocumentNonBlocking(userOrderDocRef);
+    }
+    
+    toast({
+        title: 'Order Deleted',
+        description: `Order #${order.tokenNumber} has been removed.`,
+    });
   };
 
   if (areOrdersLoading) {
@@ -183,6 +210,7 @@ export default function OrdersPage() {
                             <TableHead>Items</TableHead>
                             <TableHead className="text-right">Amount</TableHead>
                             <TableHead>Status</TableHead>
+                            <TableHead>Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -227,6 +255,33 @@ export default function OrdersPage() {
                                             ))}
                                         </SelectContent>
                                     </Select>
+                                </TableCell>
+                                <TableCell>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button
+                                        variant="destructive"
+                                        size="icon"
+                                        disabled={order.status !== 'Delivered' && order.status !== 'Cancelled'}
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This will permanently delete the order history for token #{order.tokenNumber}. This action cannot be undone.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteOrder(order)}>
+                                          Delete
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
                                 </TableCell>
                             </TableRow>
                             ))}
