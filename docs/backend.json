@@ -88,14 +88,19 @@
                     "id": {"type": "string"},
                     "name": {"type": "string"},
                     "quantity": {"type": "number"},
-                    "price": {"type": "number"}
+                    "price": {"type": "number"},
+                    "packaging": {"type": "boolean"}
                 },
-                "required": ["id", "name", "quantity", "price"]
+                "required": ["id", "name", "quantity", "price", "packaging"]
             }
         },
         "totalAmount": {
             "type": "number",
             "description": "The total cost of the order."
+        },
+        "packagingFee": {
+            "type": "number",
+            "description": "The total packaging fee for the order."
         },
         "status": {
             "type": "string",
@@ -312,6 +317,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and efficient data access. The `MenuItem` entity now has a simple `category` string field, as categories are determined by AI and no longer need to be stored as a separate collection. The rest of the structure remains the same to support user profiles, caterer profiles, and order management with appropriate data segregation for security and querying efficiency."
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and efficient data access. The `MenuItem` entity now has a simple `category` string field, as categories are determined by AI and no longer need to be stored as a separate collection. The rest of the structure remains the same to support user profiles, caterer profile, and order management with appropriate data segregation for security and querying efficiency."
   }
 }

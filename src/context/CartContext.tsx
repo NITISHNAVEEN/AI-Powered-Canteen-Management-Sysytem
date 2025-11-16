@@ -18,6 +18,7 @@ type MenuItem = {
 
 type CartItem = MenuItem & {
   quantity: number;
+  packaging: boolean;
 };
 
 interface CartContextType {
@@ -25,6 +26,7 @@ interface CartContextType {
   addToCart: (item: MenuItem) => void;
   removeFromCart: (itemId: string) => void;
   clearCart: () => void;
+  togglePackaging: (itemId: string) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -41,7 +43,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
         );
       } else {
-        return [...prevItems, { ...item, quantity: 1 }];
+        return [...prevItems, { ...item, quantity: 1, packaging: false }];
       }
     });
   };
@@ -63,9 +65,17 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setCartItems([]);
   };
 
+  const togglePackaging = (itemId: string) => {
+    setCartItems(prevItems =>
+      prevItems.map(item =>
+        item.id === itemId ? { ...item, packaging: !item.packaging } : item
+      )
+    );
+  };
+
   return (
     <CartContext.Provider
-      value={{ cartItems, addToCart, removeFromCart, clearCart }}
+      value={{ cartItems, addToCart, removeFromCart, clearCart, togglePackaging }}
     >
       {children}
     </CartContext.Provider>

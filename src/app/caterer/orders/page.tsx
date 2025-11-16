@@ -1,5 +1,5 @@
 'use client';
-import { Clock, Check, X, Truck, Hash, Trash2 } from 'lucide-react';
+import { Clock, Check, X, Truck, Hash, Trash2, Package as PackageIcon } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -57,6 +57,7 @@ type OrderItem = {
     name: string;
     quantity: number;
     price: number;
+    packaging: boolean;
 };
 
 type Order = {
@@ -65,6 +66,7 @@ type Order = {
     catererId: string;
     items: OrderItem[];
     totalAmount: number;
+    packagingFee?: number;
     status: 'Pending' | 'Processing' | 'Delivered' | 'Cancelled';
     orderDate: {
         seconds: number;
@@ -245,9 +247,16 @@ export default function OrdersPage() {
                                     {format(new Date(order.orderDate.seconds * 1000), 'PPpp')}
                                 </TableCell>
                                 <TableCell>
-                                    {order.items.map(item => `${item.quantity}x ${item.name}`).join(', ')}
+                                    {order.items.map(item => `${item.quantity}x ${item.name}${item.packaging ? ' (Packed)' : ''}`).join(', ')}
                                 </TableCell>
-                                <TableCell className="text-right">₹{order.totalAmount.toFixed(2)}</TableCell>
+                                <TableCell className="text-right">
+                                    <div>₹{(order.totalAmount + (order.packagingFee || 0)).toFixed(2)}</div>
+                                    {order.packagingFee && order.packagingFee > 0 && (
+                                        <div className="text-xs text-muted-foreground">
+                                            (incl. ₹{order.packagingFee.toFixed(2)} pack fee)
+                                        </div>
+                                    )}
+                                </TableCell>
                                 <TableCell>
                                     <Select
                                         value={order.status}

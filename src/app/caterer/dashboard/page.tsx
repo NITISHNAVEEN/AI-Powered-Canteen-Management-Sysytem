@@ -47,6 +47,7 @@ type OrderItem = {
     name: string;
     quantity: number;
     price: number;
+    packaging: boolean;
 };
 
 type Order = {
@@ -55,6 +56,7 @@ type Order = {
     catererId: string;
     items: OrderItem[];
     totalAmount: number;
+    packagingFee?: number;
     status: 'Pending' | 'Processing' | 'Delivered' | 'Cancelled';
     orderDate: {
         seconds: number;
@@ -96,7 +98,7 @@ export default function DashboardPage() {
       return { totalRevenue: 0, totalOrders: 0, salesData: [], popularItemsData: [], recentOrders: [] };
     }
 
-    const revenue = orders.reduce((acc, order) => acc + order.totalAmount, 0);
+    const revenue = orders.reduce((acc, order) => acc + order.totalAmount + (order.packagingFee || 0), 0);
     const orderCount = orders.length;
     
     // Sales data for the last 7 days
@@ -109,7 +111,7 @@ export default function DashboardPage() {
     const dailySales = last7Days.map(dateStr => {
         const dayRevenue = orders
             .filter(order => format(new Date(order.orderDate.seconds * 1000), 'yyyy-MM-dd') === dateStr)
-            .reduce((sum, order) => sum + order.totalAmount, 0);
+            .reduce((sum, order) => sum + order.totalAmount + (order.packagingFee || 0), 0);
         return { name: format(new Date(dateStr), 'EEE'), revenue: dayRevenue };
     });
 
@@ -300,7 +302,7 @@ export default function DashboardPage() {
                                 </Badge>
                                 </TableCell>
                                 <TableCell>{order.date}</TableCell>
-                                <TableCell className="text-right">₹{order.totalAmount.toFixed(2)}</TableCell>
+                                <TableCell className="text-right">₹{(order.totalAmount + (order.packagingFee || 0)).toFixed(2)}</TableCell>
                             </TableRow>
                             ))}
                         </TableBody>

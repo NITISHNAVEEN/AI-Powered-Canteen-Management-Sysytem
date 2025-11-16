@@ -12,18 +12,28 @@ import { collection, serverTimestamp, getDocs, query, where, QuerySnapshot, Docu
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
-
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 export default function CheckoutPage() {
-  const { cartItems, addToCart, removeFromCart, clearCart } = useCart();
+  const { cartItems, addToCart, removeFromCart, clearCart, togglePackaging } = useCart();
   const { firestore } = useFirebase();
   const { toast } = useToast();
   const router = useRouter();
 
-  const total = cartItems.reduce(
+  const PACKAGING_FEE = 5;
+
+  const subtotal = cartItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
+
+  const packagingFee = cartItems.reduce(
+      (sum, item) => sum + (item.packaging ? item.quantity * PACKAGING_FEE : 0),
+      0
+  );
+
+  const total = subtotal + packagingFee;
 
   const getImage = (item: any) => {
     const placeholder =
@@ -83,8 +93,10 @@ export default function CheckoutPage() {
           name: item.name,
           quantity: item.quantity,
           price: item.price,
+          packaging: item.packaging,
         })),
-        totalAmount: total,
+        totalAmount: subtotal,
+        packagingFee: packagingFee,
         status: 'Pending' as const,
         orderDate: serverTimestamp(),
         customerName: 'Anonymous User',
@@ -94,18 +106,15 @@ export default function CheckoutPage() {
 
       const catererOrdersRef = collection(firestore, 'caterers', catererId, 'orders');
       
-      // Use `addDoc` which is more standard for creating a new document with an auto-generated ID
       const orderDocRef = await addDoc(catererOrdersRef, orderData);
       
       if (orderDocRef) {
         const userOrderDoc = doc(firestore, 'users', userId, 'orders', orderDocRef.id);
         await setDoc(userOrderDoc, orderData);
         
-        // Store order reference in local storage
         if (typeof window !== 'undefined') {
             const pastOrders = JSON.parse(localStorage.getItem('pastOrders') || '[]');
             const newOrderRef = { orderId: orderDocRef.id, userId: userId };
-            // Keep only the last 5 orders
             const updatedPastOrders = [newOrderRef, ...pastOrders].slice(0, 5); 
             localStorage.setItem('pastOrders', JSON.stringify(updatedPastOrders));
         }
@@ -160,6 +169,16 @@ export default function CheckoutPage() {
                     <p className="text-sm text-muted-foreground">
                       ₹{item.price.toFixed(2)}
                     </p>
+                     <div className="flex items-center space-x-2 mt-2">
+                        <Checkbox
+                            id={`packaging-${item.id}`}
+                            checked={item.packaging}
+                            onCheckedChange={() => togglePackaging(item.id)}
+                        />
+                        <Label htmlFor={`packaging-${item.id}`} className="text-sm">
+                            Add packaging (+₹{PACKAGING_FEE.toFixed(2)})
+                        </Label>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -180,15 +199,26 @@ export default function CheckoutPage() {
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="font-semibold w-20 text-right">
+                  <p className="font-semibold w-24 text-right">
                     ₹{(item.price * item.quantity).toFixed(2)}
                   </p>
                 </div>
               ))}
               <Separator />
-              <div className="flex justify-end items-center gap-4 font-bold text-xl">
-                <span>Total:</span>
-                <span>₹{total.toFixed(2)}</span>
+               <div className="space-y-2 text-right">
+                <div className="flex justify-end items-center gap-4">
+                    <span>Subtotal:</span>
+                    <span>₹{subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-end items-center gap-4 text-sm text-muted-foreground">
+                    <span>Packaging Fee:</span>
+                    <span>₹{packagingFee.toFixed(2)}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-end items-center gap-4 font-bold text-xl">
+                    <span>Total:</span>
+                    <span>₹{total.toFixed(2)}</span>
+                </div>
               </div>
             </div>
           )}
