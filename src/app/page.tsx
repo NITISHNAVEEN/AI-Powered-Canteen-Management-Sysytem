@@ -1,5 +1,5 @@
 'use client';
-import { Clock, ShoppingCart, History, Search, Filter } from 'lucide-react';
+import { Clock, ShoppingCart, History, Search, Filter, Star } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -50,12 +50,23 @@ type MenuItem = {
   imageUrl?: string;
   category: string;
   foodType: FoodType;
+  averageRating?: number;
+  numberOfRatings?: number;
 };
 
 type Category = {
     id: string;
     name: string;
 }
+
+type OrderItem = {
+    id: string;
+    name: string;
+    quantity: number;
+    price: number;
+    packaging: boolean;
+    rated?: boolean;
+};
 
 type Order = {
     id: string;
@@ -64,6 +75,7 @@ type Order = {
     orderDate: { seconds: number; nanoseconds: number };
     totalAmount: number;
     tokenNumber?: number;
+    items: OrderItem[];
 };
 
 type StoredOrder = {
@@ -96,6 +108,28 @@ const FoodTypeIndicator = ({ type }: { type: FoodType }) => {
       </div>
     </div>
   );
+};
+
+const RatingDisplay = ({ rating, count }: { rating: number; count: number }) => {
+    if (count === 0) {
+        return <div className="text-xs text-muted-foreground">No ratings yet</div>;
+    }
+    const fullStars = Math.floor(rating);
+    const halfStar = rating % 1 >= 0.5;
+    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+
+    return (
+        <div className="flex items-center gap-1">
+            {[...Array(fullStars)].map((_, i) => (
+                <Star key={`full-${i}`} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+            ))}
+            {halfStar && <Star key="half" className="w-4 h-4 text-yellow-400" />}
+            {[...Array(emptyStars)].map((_, i) => (
+                <Star key={`empty-${i}`} className="w-4 h-4 text-gray-300" />
+            ))}
+            <span className="text-xs text-muted-foreground ml-1">({count})</span>
+        </div>
+    );
 };
 
 
@@ -448,6 +482,7 @@ export default function Home() {
                                 <h3 className="text-lg font-bold">{item.name}</h3>
                               </div>
                               <p className="text-sm text-muted-foreground">{item.description}</p>
+                               <RatingDisplay rating={item.averageRating || 0} count={item.numberOfRatings || 0} />
                             </div>
                             <div className="flex flex-col items-end gap-2">
                               <p className="font-semibold">₹{item.price.toFixed(2)}</p>
@@ -491,6 +526,7 @@ export default function Home() {
                                     <p className="text-sm text-muted-foreground">
                                         {item.description}
                                     </p>
+                                     <RatingDisplay rating={item.averageRating || 0} count={item.numberOfRatings || 0} />
                                     </div>
                                     <div className="flex flex-col items-end gap-2">
                                     <p className="font-semibold">₹{item.price.toFixed(2)}</p>
@@ -544,3 +580,5 @@ export default function Home() {
     </SidebarProvider>
   );
 }
+
+    

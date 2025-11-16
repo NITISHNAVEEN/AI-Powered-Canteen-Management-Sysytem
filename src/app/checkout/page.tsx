@@ -94,6 +94,7 @@ export default function CheckoutPage() {
           quantity: item.quantity,
           price: item.price,
           packaging: item.packaging,
+          rated: false,
         })),
         totalAmount: subtotal,
         packagingFee: packagingFee,
@@ -238,3 +239,5 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+    

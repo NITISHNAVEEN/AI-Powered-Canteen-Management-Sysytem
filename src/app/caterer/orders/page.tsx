@@ -58,6 +58,7 @@ type OrderItem = {
     quantity: number;
     price: number;
     packaging: boolean;
+    rated?: boolean;
 };
 
 type Order = {
@@ -319,3 +320,5 @@ export default function OrdersPage() {
     </SidebarProvider>
   );
 }
+
+    

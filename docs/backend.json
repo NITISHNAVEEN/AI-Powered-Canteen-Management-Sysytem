@@ -89,7 +89,8 @@
                     "name": {"type": "string"},
                     "quantity": {"type": "number"},
                     "price": {"type": "number"},
-                    "packaging": {"type": "boolean"}
+                    "packaging": {"type": "boolean"},
+                    "rated": { "type": "boolean", "description": "Whether the user has rated this item for this order." }
                 },
                 "required": ["id", "name", "quantity", "price", "packaging"]
             }
@@ -165,6 +166,14 @@
           "type": "string",
           "description": "The type of food, either 'veg' or 'non-veg'.",
           "enum": ["veg", "non-veg"]
+        },
+        "averageRating": {
+            "type": "number",
+            "description": "The average rating of the menu item."
+        },
+        "numberOfRatings": {
+            "type": "number",
+            "description": "The total number of ratings for the menu item."
         }
       },
       "required": [
@@ -197,6 +206,22 @@
         "id",
         "name"
       ]
+    },
+    "Rating": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Rating",
+        "type": "object",
+        "description": "Represents a user's rating and review for a menu item.",
+        "properties": {
+            "id": { "type": "string", "description": "Unique identifier for the Rating entity." },
+            "userId": { "type": "string", "description": "The ID of the user who submitted the rating." },
+            "menuItemId": { "type": "string", "description": "The ID of the menu item being rated." },
+            "orderId": { "type": "string", "description": "The ID of the order associated with this rating." },
+            "rating": { "type": "number", "minimum": 1, "maximum": 5, "description": "The rating given by the user, from 1 to 5." },
+            "review": { "type": "string", "description": "An optional text review from the user." },
+            "createdAt": { "type": "string", "format": "date-time", "description": "The timestamp when the rating was submitted." }
+        },
+        "required": ["id", "userId", "menuItemId", "orderId", "rating", "createdAt"]
     }
   },
   "auth": {
@@ -254,6 +279,19 @@
               "description": "The unique identifier for the menu item."
             }
           ]
+        }
+      },
+      {
+        "path": "caterers/{catererId}/menuItems/{menuItemId}/ratings/{ratingId}",
+        "definition": {
+            "entityName": "Rating",
+            "schema": { "$ref": "#/backend/entities/Rating" },
+            "description": "Stores ratings for a specific menu item.",
+            "params": [
+                { "name": "catererId", "description": "The ID of the caterer." },
+                { "name": "menuItemId", "description": "The ID of the menu item." },
+                { "name": "ratingId", "description": "The ID of the rating." }
+            ]
         }
       },
       {
@@ -320,3 +358,5 @@
     "reasoning": "The Firestore data structure is designed to ensure security, scalability, and efficient data access. The `MenuItem` entity now has a simple `category` string field, as categories are determined by AI and no longer need to be stored as a separate collection. The rest of the structure remains the same to support user profiles, caterer profile, and order management with appropriate data segregation for security and querying efficiency."
   }
 }
+
+    

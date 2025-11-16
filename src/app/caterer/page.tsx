@@ -70,6 +70,8 @@ type MenuItem = {
   imageUrl?: string;
   catererId: string;
   foodType: FoodType;
+  averageRating?: number;
+  numberOfRatings?: number;
 };
 
 type Category = {
@@ -314,17 +316,20 @@ export default function CatererPage() {
     }
 
     const saveItem = (finalImageUrl?: string) => {
-      const newItemData: Omit<MenuItem, 'id' | 'catererId'> = {
+      const newItemData = {
         name: newItemName,
         description: newItemDescription,
         price,
         available: true,
         category: newItemCategory,
         foodType: newItemFoodType,
+        catererId,
+        averageRating: 0,
+        numberOfRatings: 0,
         ...(finalImageUrl && { imageUrl: finalImageUrl }),
       };
 
-      addDocumentNonBlocking(menuItemsRef, { ...newItemData, catererId });
+      addDocumentNonBlocking(menuItemsRef, newItemData);
       toast({ title: 'Menu item added successfully!' });
       resetAddFormState();
     };
@@ -916,6 +921,8 @@ export default function CatererPage() {
     </SidebarProvider>
   );
 }
+
+    
 
     
 
