@@ -1,5 +1,5 @@
 'use client';
-import { Clock, PlusCircle, Trash2, Edit } from 'lucide-react';
+import { Clock, PlusCircle, Trash2, Edit, Check, X } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -50,7 +50,7 @@ import {
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
 } from '@/firebase/non-blocking-updates';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, writeBatch } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -169,7 +169,7 @@ export default function CatererPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Categories', 'Settings'];
+  const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Categories'];
 
   const resetAddFormState = useCallback(() => {
     setNewItemName('');
@@ -193,6 +193,32 @@ export default function CatererPage() {
     setEditImageFile(null);
     setEditOpen(false);
   }, []);
+
+  const handleBulkUpdateAvailability = async (isAvailable: boolean) => {
+    if (!firestore || !menuItems) return;
+
+    const batch = writeBatch(firestore);
+    menuItems.forEach(item => {
+      const itemRef = doc(firestore, 'caterers', catererId, 'menuItems', item.id);
+      batch.update(itemRef, { available: isAvailable });
+    });
+
+    try {
+      await batch.commit();
+      toast({
+        title: 'Success!',
+        description: `All menu items have been marked as ${isAvailable ? 'available' : 'unavailable'}.`,
+      });
+    } catch (error) {
+      console.error('Bulk update failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not update all items. Please try again.',
+      });
+    }
+  };
+
 
   const handleAddMenuItem = async () => {
     if (!menuItemsRef || !newItemCategory) return;
@@ -609,6 +635,23 @@ export default function CatererPage() {
               )}
             </Dialog>
           </div>
+          
+          <Card className="mb-4">
+            <CardContent className="p-4 flex items-center justify-between">
+                <div>
+                    <h3 className="font-semibold">Menu Availability</h3>
+                    <p className="text-sm text-muted-foreground">Quickly mark all items as available or unavailable.</p>
+                </div>
+                <div className="flex gap-2">
+                    <Button onClick={() => handleBulkUpdateAvailability(true)} variant="outline">
+                        <Check className="mr-2 h-4 w-4" /> Mark All Available
+                    </Button>
+                    <Button onClick={() => handleBulkUpdateAvailability(false)} variant="destructive">
+                        <X className="mr-2 h-4 w-4" /> Mark All Unavailable
+                    </Button>
+                </div>
+            </CardContent>
+          </Card>
 
           {/* Edit Dialog */}
            <Dialog open={isEditOpen} onOpenChange={(isOpen) => { setEditOpen(isOpen); if (!isOpen) resetEditFormState(); }}>

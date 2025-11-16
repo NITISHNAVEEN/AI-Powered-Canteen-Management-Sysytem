@@ -5,5 +5,5 @@ export const firebaseConfig = {
   "apiKey": "AIzaSyClgSc_3A3l3V3jBBlT92S_m_A9i-2A1_o",
   "authDomain": "foodie-s-hub-9d2bc.firebaseapp.com",
   "messagingSenderId": "350720188995",
-  "databaseURL": "https://foodie-s-hub-9d2bc-default-rtdb.firebaseio.com"
+  "databaseURL": "https://console.firebase.google.com/u/0/project/foodie-s-hub-9d2bc/database/foodie-s-hub-9d2bc-default-rtdb/data/~2F"
 };

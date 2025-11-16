@@ -106,7 +106,7 @@ export default function OrdersPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Categories', 'Settings'];
+  const menuLinks = ['Dashboard', 'Orders', 'Menu Items', 'Categories'];
 
   const handleStatusChange = (order: Order, newStatus: Order['status']) => {
     if (!firestore) return;

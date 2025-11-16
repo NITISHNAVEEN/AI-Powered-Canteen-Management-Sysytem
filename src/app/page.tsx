@@ -42,12 +42,6 @@ type Category = {
     name: string;
 }
 
-type Caterer = {
-    id: string;
-    username: string;
-    isCanteenOpen?: boolean;
-}
-
 type CategorizedItem = MenuItem & { image: string; imageHint: string };
 
 type GroupedItems = {
@@ -68,17 +62,9 @@ export default function Home() {
   // Hardcoded catererId for demonstration
   const catererId = 'demo-caterer';
 
-  const catererRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return doc(firestore, 'caterers', catererId);
-  }, [firestore, catererId]);
-
   const menuItemsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(
-        collection(firestore, 'caterers', catererId, 'menuItems'),
-        where('available', '==', true)
-    );
+    return collection(firestore, 'caterers', catererId, 'menuItems');
   }, [firestore, catererId]);
 
   const categoriesQuery = useMemoFirebase(() => {
@@ -86,18 +72,21 @@ export default function Home() {
       return collection(firestore, 'caterers', catererId, 'categories');
   }, [firestore, catererId]);
 
-  const { data: caterer, isLoading: isCatererLoading } = useDoc<Caterer>(catererRef);
   const { data: menuItems, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsQuery);
   const { data: categoriesData, isLoading: areCategoriesLoading } = useCollection<Category>(categoriesQuery);
+  
+  const availableMenuItems = useMemo(() => {
+    return menuItems?.filter(item => item.available) ?? [];
+  }, [menuItems]);
 
-  const isCanteenOpen = caterer?.isCanteenOpen ?? false;
+  const isCanteenOpen = availableMenuItems.length > 0;
 
   const groupedItems = useMemo((): GroupedItems => {
-    if (!menuItems) {
+    if (!availableMenuItems) {
       return {};
     }
 
-    return menuItems.reduce((acc, item) => {
+    return availableMenuItems.reduce((acc, item) => {
       const category = item.category || 'Uncategorized';
       if (!acc[category]) {
         acc[category] = [];
@@ -118,14 +107,14 @@ export default function Home() {
       return acc;
     }, {} as GroupedItems);
 
-  }, [menuItems]);
+  }, [availableMenuItems]);
   
   const categoriesInOrder = useMemo(() => {
-    if (!menuItems || !categoriesData) return [];
+    if (!availableMenuItems || !categoriesData) return [];
     
     const definedCategoryNames = categoriesData.map(c => c.name).sort();
     
-    const allCategoriesInMenu = [...new Set(menuItems.map(item => item.category || 'Uncategorized'))];
+    const allCategoriesInMenu = [...new Set(availableMenuItems.map(item => item.category || 'Uncategorized'))];
     
     const orderedCategories = definedCategoryNames.filter(c => allCategoriesInMenu.includes(c));
     
@@ -142,12 +131,12 @@ export default function Home() {
     }
     
     return orderedCategories;
-}, [categoriesData, menuItems]);
+}, [categoriesData, availableMenuItems]);
 
   const recommendedItems = useMemo(() => {
-    if (!recommendations || !menuItems) return [];
-    return menuItems.filter(item => recommendations.recommendedItemIds.includes(item.id));
-  }, [recommendations, menuItems]);
+    if (!recommendations || !availableMenuItems) return [];
+    return availableMenuItems.filter(item => recommendations.recommendedItemIds.includes(item.id));
+  }, [recommendations, availableMenuItems]);
 
 
   useEffect(() => {
@@ -159,13 +148,13 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (isCanteenOpen && menuItems && menuItems.length > 0 && !recommendationsFetched) {
+    if (isCanteenOpen && availableMenuItems && availableMenuItems.length > 0 && !recommendationsFetched) {
       const fetchRecommendations = async () => {
         setAreRecommendationsLoading(true);
         try {
           const aiRecommendations = await getRecommendedItems({
             currentTime: new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' }),
-            menuItems: menuItems.map(({ id, name, description }) => ({ id, name, description })),
+            menuItems: availableMenuItems.map(({ id, name, description }) => ({ id, name, description })),
           });
           setRecommendations(aiRecommendations);
           setRecommendationsFetched(true); // Mark as fetched
@@ -181,7 +170,7 @@ export default function Home() {
       // If there are no menu items, or already fetched, don't show loading state
       setAreRecommendationsLoading(false);
     }
-  }, [menuItems, isMenuLoading, recommendationsFetched, isCanteenOpen]);
+  }, [availableMenuItems, isMenuLoading, recommendationsFetched, isCanteenOpen]);
 
 
   const handleCategoryClick = (categoryValue: string) => {
@@ -191,7 +180,7 @@ export default function Home() {
     });
   };
   
-  if (isMenuLoading || areCategoriesLoading || isCatererLoading) {
+  if (isMenuLoading || areCategoriesLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         Loading menu...
