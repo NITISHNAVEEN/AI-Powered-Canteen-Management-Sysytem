@@ -53,6 +53,14 @@ function OrderStatusContent() {
   }, [firestore, userId, orderId]);
 
   const { data: order, isLoading } = useDoc<Order>(orderRef);
+  
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  useEffect(() => {
+    if (order?.status && order.status !== 'Pending' && order.status !== 'Cancelled') {
+        setShowConfetti(true);
+    }
+  }, [order?.status])
 
   if (isLoading) {
     return (
@@ -75,7 +83,7 @@ function OrderStatusContent() {
                 <XCircle className="w-12 h-12 text-red-600" />
             </div>
           <CardTitle className="mt-4 text-2xl font-bold">Order Not Found</CardTitle>
-          <CardDescription>We couldn't find details for this order. It might have been cancelled.</CardDescription>
+          <CardDescription>We couldn't find details for this order. It might have been cancelled or there was an error.</CardDescription>
         </CardHeader>
         <CardContent>
             <Button asChild>
@@ -99,7 +107,7 @@ function OrderStatusContent() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-            <Loader className="w-8 h-8 text-muted-foreground animate-spin mx-auto" />
+            <Loader className="w-8 h-8 text-muted-foreground animate-spin mx-auto mt-4" />
         </CardContent>
       </Card>
     );
@@ -129,7 +137,7 @@ function OrderStatusContent() {
   // Confirmed states: Processing, Delivered
   return (
     <>
-      <Confetti width={width} height={height} recycle={false} numberOfPieces={300} />
+      {showConfetti && <Confetti width={width} height={height} recycle={false} numberOfPieces={500} tweenDuration={10000} />}
       <Card className="w-full max-w-md text-center">
         <CardHeader>
           <div className="mx-auto bg-green-100 rounded-full p-4 w-fit">
@@ -147,9 +155,6 @@ function OrderStatusContent() {
               <p className="text-6xl font-bold tracking-wider">{order.tokenNumber}</p>
             </div>
           )}
-          <p className="text-sm text-muted-foreground">
-              You can track the status of your order in your profile section.
-          </p>
           <Button asChild>
               <Link href="/">Continue Shopping</Link>
           </Button>

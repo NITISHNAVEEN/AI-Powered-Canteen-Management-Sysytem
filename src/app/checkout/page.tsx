@@ -33,7 +33,7 @@ export default function CheckoutPage() {
     return item.imageUrl || placeholder.imageUrl;
   }
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (!firestore || cartItems.length === 0) {
       toast({
         variant: 'destructive',
@@ -49,7 +49,7 @@ export default function CheckoutPage() {
         return;
     }
 
-    const tokenNumber = Math.floor(Math.random() * 100) + 1;
+    const tokenNumber = Math.floor(Math.random() * 900) + 100;
     const userId = uuidv4(); // Generate a unique ID for this anonymous order
 
     const orderData = {
@@ -69,35 +69,32 @@ export default function CheckoutPage() {
       tokenNumber: tokenNumber,
     };
     
-    // 1. Add order to caterer's collection
-    const catererOrdersRef = collection(firestore, 'caterers', catererId, 'orders');
-    addDocumentNonBlocking(catererOrdersRef, orderData)
-      .then(orderDocRef => {
-        // This block executes on successful write to the caterer's collection
-        if (orderDocRef) {
-          // 2. Add same order to user's collection, using the same ID for consistency
-          const userOrderDoc = doc(firestore, 'users', userId, 'orders', orderDocRef.id);
-          // Use setDocumentNonBlocking here to ensure the ID is the same
-          setDocumentNonBlocking(userOrderDoc, orderData, { merge: false });
-        }
+    try {
+      const catererOrdersRef = collection(firestore, 'caterers', catererId, 'orders');
+      // Await the creation to get the document ID
+      const orderDocRef = await addDocumentNonBlocking(catererOrdersRef, orderData);
+      
+      if (orderDocRef) {
+        const userOrderDoc = doc(firestore, 'users', userId, 'orders', orderDocRef.id);
+        // Use setDocumentNonBlocking to ensure the ID is the same
+        setDocumentNonBlocking(userOrderDoc, orderData, { merge: false });
         
         toast({
-          title: 'Order Placed!',
-          description: `Your order token is #${tokenNumber}. It has been successfully placed.`,
+          title: 'Order Submitted!',
+          description: `Your order has been sent to the caterer for confirmation.`,
         });
         clearCart();
-        router.push(`/order?token=${tokenNumber}`);
-      })
-      .catch(error => {
-        // This catch is for client-side errors or if the non-blocking function re-throws.
-        // The permission error is handled inside `addDocumentNonBlocking`.
-        console.error("Order placement failed:", error);
-        toast({
-            variant: 'destructive',
-            title: 'Failed to place order',
-            description: 'There was an issue submitting your order. Please try again.',
-        });
+        // Redirect to a new status page with the order ID
+        router.push(`/order/status?orderId=${orderDocRef.id}&userId=${userId}`);
+      }
+    } catch (error) {
+      console.error("Order placement failed:", error);
+      toast({
+          variant: 'destructive',
+          title: 'Failed to place order',
+          description: 'There was an issue submitting your order. Please try again.',
       });
+    }
   };
 
 

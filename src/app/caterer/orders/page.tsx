@@ -152,6 +152,21 @@ export default function OrdersPage() {
     });
   };
 
+  const getAvailableStatuses = (currentStatus: Order['status']): Order['status'][] => {
+    switch (currentStatus) {
+        case 'Pending':
+            return ['Processing', 'Cancelled'];
+        case 'Processing':
+            return ['Delivered', 'Cancelled'];
+        case 'Delivered':
+            return ['Delivered'];
+        case 'Cancelled':
+            return ['Cancelled'];
+        default:
+            return [];
+    }
+  }
+
   if (areOrdersLoading) {
       return <div className="flex h-screen items-center justify-center">Loading Orders...</div>;
   }
@@ -237,6 +252,7 @@ export default function OrdersPage() {
                                     <Select
                                         value={order.status}
                                         onValueChange={(newStatus) => handleStatusChange(order, newStatus as Order['status'])}
+                                        disabled={order.status === 'Delivered' || order.status === 'Cancelled'}
                                     >
                                         <SelectTrigger className={`w-[140px] ${statusColors[order.status]}`}>
                                             <div className="flex items-center gap-2">
@@ -245,7 +261,7 @@ export default function OrdersPage() {
                                             </div>
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {(['Pending', 'Processing', 'Delivered', 'Cancelled'] as const).map(status => (
+                                            {getAvailableStatuses(order.status).map(status => (
                                                 <SelectItem key={status} value={status}>
                                                      <div className="flex items-center gap-2">
                                                         {statusIcons[status]}
