@@ -46,7 +46,7 @@ export default function CheckoutPage() {
     let isUnique = false;
 
     while (!isUnique) {
-      tokenNumber = Math.floor(Math.random() * 900) + 100;
+      tokenNumber = Math.floor(Math.random() * 100) + 1;
       if (!activeTokens.includes(tokenNumber)) {
         isUnique = true;
       }
