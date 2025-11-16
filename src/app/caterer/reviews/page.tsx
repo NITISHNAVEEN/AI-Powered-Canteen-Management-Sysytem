@@ -1,5 +1,5 @@
 'use client';
-import { Clock, Loader, MessageSquareQuote } from 'lucide-react';
+import { Clock, Loader, MessageSquareQuote, ChevronsUpDown } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -18,13 +18,21 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { analyzeReviews, AnalyzeReviewsOutput } from '@/ai/flows/analyze-reviews-flow';
+import { cn } from '@/lib/utils';
+
 
 type MenuItem = {
   id: string;
@@ -50,6 +58,7 @@ export default function ReviewsPage() {
   const firestore = useFirestore();
   const catererId = 'demo-caterer';
 
+  const [popoverOpen, setPopoverOpen] = useState(false);
   const [selectedMenuItemId, setSelectedMenuItemId] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<AnalyzeReviewsOutput | null>(null);
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
@@ -153,16 +162,44 @@ export default function ReviewsPage() {
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold">Review Analysis</h1>
             <div className="w-full max-w-sm">
-                <Select onValueChange={setSelectedMenuItemId} disabled={areMenuItemsLoading}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select a menu item to analyze..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {menuItems && menuItems.length > 0 ? menuItems.map(item => (
-                            <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>
-                        )) : <SelectItem value="none" disabled>No menu items found</SelectItem>}
-                    </SelectContent>
-                </Select>
+                <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                    <PopoverTrigger asChild>
+                        <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={popoverOpen}
+                            className="w-full justify-between"
+                            disabled={areMenuItemsLoading}
+                        >
+                            {selectedMenuItemId
+                                ? menuItems?.find((item) => item.id === selectedMenuItemId)?.name
+                                : "Select a menu item..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command>
+                            <CommandInput placeholder="Search for a menu item..." />
+                            <CommandList>
+                                <CommandEmpty>No menu items found.</CommandEmpty>
+                                <CommandGroup>
+                                    {menuItems?.map((item) => (
+                                        <CommandItem
+                                            key={item.id}
+                                            value={item.id}
+                                            onSelect={(currentValue) => {
+                                                setSelectedMenuItemId(currentValue === selectedMenuItemId ? null : currentValue);
+                                                setPopoverOpen(false);
+                                            }}
+                                        >
+                                            {item.name}
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            </CommandList>
+                        </Command>
+                    </PopoverContent>
+                </Popover>
             </div>
           </div>
           
