@@ -1,5 +1,5 @@
 'use client';
-import { Clock, PlusCircle, Trash2, Edit, Check, X } from 'lucide-react';
+import { Clock, PlusCircle, Trash2, Edit, Check, X, Undo } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -79,6 +79,11 @@ type GroupedMenuItems = {
   [category: string]: MenuItem[];
 };
 
+type AvailabilityState = {
+    id: string;
+    available: boolean;
+};
+
 export default function CatererPage() {
   const router = useRouter();
   const firestore = useFirestore();
@@ -107,6 +112,10 @@ export default function CatererPage() {
   const [editImageSource, setEditImageSource] = useState<ImageSource>('none');
   const [editImageUrl, setEditImageUrl] = useState('');
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
+
+  // Bulk update state
+  const [previousAvailabilityState, setPreviousAvailabilityState] = useState<AvailabilityState[] | null>(null);
+
 
   const menuItemsRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -194,28 +203,62 @@ export default function CatererPage() {
     setEditOpen(false);
   }, []);
 
-  const handleBulkUpdateAvailability = async (isAvailable: boolean) => {
+  const handleMarkAllUnavailable = async () => {
     if (!firestore || !menuItems) return;
+
+    // Save current state
+    const currentState = menuItems.map(item => ({ id: item.id, available: item.available }));
+    setPreviousAvailabilityState(currentState);
 
     const batch = writeBatch(firestore);
     menuItems.forEach(item => {
-      const itemRef = doc(firestore, 'caterers', catererId, 'menuItems', item.id);
-      batch.update(itemRef, { available: isAvailable });
+        if(item.available) {
+            const itemRef = doc(firestore, 'caterers', catererId, 'menuItems', item.id);
+            batch.update(itemRef, { available: false });
+        }
     });
 
     try {
       await batch.commit();
       toast({
-        title: 'Success!',
-        description: `All menu items have been marked as ${isAvailable ? 'available' : 'unavailable'}.`,
+        title: 'All Items Unavailable',
+        description: 'All menu items have been marked as unavailable.',
       });
     } catch (error) {
-      console.error('Bulk update failed:', error);
+      console.error('Bulk update to unavailable failed:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Could not update all items. Please try again.',
+        description: 'Could not mark all items as unavailable. Please try again.',
       });
+      setPreviousAvailabilityState(null); // Clear state if failed
+    }
+  };
+  
+  const handleRevertAvailability = async () => {
+    if (!firestore || !previousAvailabilityState) return;
+
+    const batch = writeBatch(firestore);
+    previousAvailabilityState.forEach(itemState => {
+      const itemRef = doc(firestore, 'caterers', catererId, 'menuItems', itemState.id);
+      batch.update(itemRef, { available: itemState.available });
+    });
+
+    try {
+      await batch.commit();
+      toast({
+        title: 'Availability Reverted',
+        description: 'Menu items have been restored to their previous state.',
+      });
+    } catch (error) {
+      console.error('Bulk revert failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not revert item availability. Please try again.',
+      });
+    } finally {
+      setPreviousAvailabilityState(null); // Clear state after attempt
     }
   };
 
@@ -640,15 +683,18 @@ export default function CatererPage() {
             <CardContent className="p-4 flex items-center justify-between">
                 <div>
                     <h3 className="font-semibold">Menu Availability</h3>
-                    <p className="text-sm text-muted-foreground">Quickly mark all items as available or unavailable.</p>
+                    <p className="text-sm text-muted-foreground">Quickly mark all items as unavailable or revert.</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button onClick={() => handleBulkUpdateAvailability(true)} variant="outline">
-                        <Check className="mr-2 h-4 w-4" /> Mark All Available
-                    </Button>
-                    <Button onClick={() => handleBulkUpdateAvailability(false)} variant="destructive">
-                        <X className="mr-2 h-4 w-4" /> Mark All Unavailable
-                    </Button>
+                    {previousAvailabilityState ? (
+                        <Button onClick={handleRevertAvailability} variant="outline">
+                            <Undo className="mr-2 h-4 w-4" /> Revert to Previous State
+                        </Button>
+                    ) : (
+                        <Button onClick={handleMarkAllUnavailable} variant="destructive">
+                            <X className="mr-2 h-4 w-4" /> Mark All Unavailable
+                        </Button>
+                    )}
                 </div>
             </CardContent>
           </Card>
@@ -777,3 +823,5 @@ export default function CatererPage() {
     </SidebarProvider>
   );
 }
+
+    
