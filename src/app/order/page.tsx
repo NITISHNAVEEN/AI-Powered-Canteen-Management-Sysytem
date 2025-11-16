@@ -1,5 +1,7 @@
 'use client';
+import { Suspense } from 'react';
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -29,10 +31,11 @@ const useWindowSize = () => {
   return windowSize;
 };
 
-
-export default function OrderSuccessPage() {
+function OrderSuccessContent() {
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
   const { width, height } = useWindowSize();
-  
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-8 bg-muted/40">
       <Confetti width={width} height={height} recycle={false} numberOfPieces={300} />
@@ -47,17 +50,31 @@ export default function OrderSuccessPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-            <p className="text-sm text-muted-foreground">
-                You can track the status of your order in your profile section.
-            </p>
-            <Button asChild>
-                <Link href="/">Continue Shopping</Link>
-            </Button>
-             <Button variant="outline" asChild>
-                <Link href="/profile">View Orders</Link>
-            </Button>
+          {token && (
+            <div className="my-4">
+              <p className="text-sm text-muted-foreground">Your unique order token is:</p>
+              <p className="text-6xl font-bold tracking-wider">{token}</p>
+            </div>
+          )}
+          <p className="text-sm text-muted-foreground">
+              You can track the status of your order in your profile section.
+          </p>
+          <Button asChild>
+              <Link href="/">Continue Shopping</Link>
+          </Button>
+           <Button variant="outline" asChild>
+              <Link href="/profile">View Orders</Link>
+          </Button>
         </CardContent>
       </Card>
     </main>
+  );
+}
+
+export default function OrderSuccessPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <OrderSuccessContent />
+    </Suspense>
   );
 }

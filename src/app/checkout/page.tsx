@@ -86,7 +86,7 @@ export default function CheckoutPage() {
           description: `Your order token is #${tokenNumber}. It has been successfully placed.`,
         });
         clearCart();
-        router.push('/order');
+        router.push(`/order?token=${tokenNumber}`);
       })
       .catch(error => {
         // This catch is for client-side errors or if the non-blocking function re-throws.
