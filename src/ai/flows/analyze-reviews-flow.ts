@@ -15,7 +15,7 @@ const ReviewSchema = z.object({
   review: z.string().optional(),
 });
 
-export const AnalyzeReviewsInputSchema = z.object({
+const AnalyzeReviewsInputSchema = z.object({
   menuItemName: z.string().describe('The name of the menu item being reviewed.'),
   reviews: z
     .array(ReviewSchema)
@@ -23,7 +23,7 @@ export const AnalyzeReviewsInputSchema = z.object({
 });
 export type AnalyzeReviewsInput = z.infer<typeof AnalyzeReviewsInputSchema>;
 
-export const AnalyzeReviewsOutputSchema = z.object({
+const AnalyzeReviewsOutputSchema = z.object({
   positiveSummary: z
     .string()
     .describe('A brief, bulleted summary of the positive feedback from the reviews.'),
