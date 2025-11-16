@@ -186,9 +186,10 @@ export default function ReviewsPage() {
                                     {menuItems?.map((item) => (
                                         <CommandItem
                                             key={item.id}
-                                            value={item.id}
+                                            value={item.name}
                                             onSelect={(currentValue) => {
-                                                setSelectedMenuItemId(currentValue === selectedMenuItemId ? null : currentValue);
+                                                const selected = menuItems.find(mi => mi.name.toLowerCase() === currentValue.toLowerCase())
+                                                setSelectedMenuItemId(selected?.id === selectedMenuItemId ? null : selected?.id || null);
                                                 setPopoverOpen(false);
                                             }}
                                         >
