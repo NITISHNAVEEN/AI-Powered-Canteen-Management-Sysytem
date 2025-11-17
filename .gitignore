@@ -19,6 +19,7 @@
 .next/
 /.next/
 /out/
+.next
 
 # production
 /build
@@ -42,6 +43,7 @@ yarn-error.log*
 
  .genkit/*
  .env*
+ .env
 
 # firebase
  firebase-debug.log

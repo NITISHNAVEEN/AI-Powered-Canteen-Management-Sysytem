@@ -1,3 +1,9 @@
 {
+  "/caterer/categories/page": "app/caterer/categories/page.js",
+  "/caterer/dashboard/page": "app/caterer/dashboard/page.js",
+  "/caterer/orders/page": "app/caterer/orders/page.js",
+  "/caterer/page": "app/caterer/page.js",
+  "/caterer/reviews/page": "app/caterer/reviews/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
   "/page": "app/page.js"
 }

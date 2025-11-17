@@ -135,10 +135,9 @@ Built using *Next.js, **Tailwind CSS, **JavaScript, **Google Gemini LLM, and **F
 
 ## 🧩 Project Structure
 
+```text
 Canteen-Management-System/
 │
-├── .idx/                    # IDX environment configuration
-├── .next/                   # Next.js build output
 ├── docs/                    # Project documentation & guides
 ├── node_modules/            # Dependencies
 │
@@ -174,6 +173,7 @@ Canteen-Management-System/
 ├── tailwind.config.ts       # Tailwind CSS configuration
 ├── tsconfig.json            # TypeScript configuration
 └── README.md                # Project documentation
+```
 
 
 ---
