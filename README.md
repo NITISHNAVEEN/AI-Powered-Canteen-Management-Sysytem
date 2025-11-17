@@ -233,7 +233,7 @@ NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 
 # Google Gemini API
 NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_api_key
-
+Visit aistudio.google.com for gemini api key and use it in .env
 
 ### Run the development server
 
