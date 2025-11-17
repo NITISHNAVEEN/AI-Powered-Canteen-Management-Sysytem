@@ -10,6 +10,10 @@ An intelligent and efficient web application for *canteen management* — featur
 <p align="center">
   <img src="public/page-01.png" width="45%" />
   <img src="public/page-02.png" width="45%" /> 
+  <img src="public/page-03.png" width="45%" /> 
+  <img src="public/page-04.png" width="45%" /> 
+  <img src="public/page-05.png" width="45%" /> 
+  <img src="public/page-06.png" width="45%" /> 
 </p>
 
 ---
