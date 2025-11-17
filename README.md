@@ -7,10 +7,10 @@ An intelligent and efficient web application for *canteen management* — featur
 
 ---
 
-<div align="center" style="display: flex; justify-content: center; gap: 10px;"> 
-<img src="public/page-01.png" alt="Beginner Interface 1" width=full/> 
-<img src="public/page-02.png" alt="Beginner Interface 1" width=full/>
-</div>
+<p align="center">
+  <img src="public/page-01.png" width="45%" />
+  <img src="public/page-02.png" width="45%" /> 
+</p>
 
 ---
 
