@@ -194,9 +194,9 @@ Canteen-Management-System/
 
 bash
 
-git clone https://github.com/your-username/canteen-management-system.git
+git clone https://github.com/NITISHNAVEEN/AI-Powered-Canteen-Management-System.git
 
-cd canteen-management-system
+cd AI-Powered-Canteen-Management-System
 
 
 ### Install dependencies
