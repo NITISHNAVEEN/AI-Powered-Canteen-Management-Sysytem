@@ -5,6 +5,8 @@ An intelligent and efficient web application for *canteen management* — featur
 🎯 *GitHub Repository:*  
 👉 [https://github.com/NITISHNAVEEN/AI-Powered-Canteen-Management-Sysytem.git](https://github.com/NITISHNAVEEN/AI-Powered-Canteen-Management-Sysytem.git)
 
+*Live Demo:*
+👉[Live Demo Link](https://studio--foodie-s-hub-9d2bc.us-central1.hosted.app/)
 ---
 
 <p align="center">
