@@ -7,6 +7,13 @@ An intelligent and efficient web application for *canteen management* — featur
 
 ---
 
+<div align="center" style="display: flex; justify-content: center; gap: 10px;"> 
+<img src="public/page-01.png" alt="Beginner Interface 1" width=full/> 
+<img src="public/page-02.png" alt="Beginner Interface 1" width=full/>
+</div>
+
+---
+
 Built using *Next.js, **Tailwind CSS, **JavaScript, **Google Gemini LLM, and **Firebase Realtime Database, this project transforms traditional canteen operations into a **smart, data-driven, and customer-centric system*. 🍔🤖📊
 
 ---
@@ -128,11 +135,11 @@ Built using *Next.js, **Tailwind CSS, **JavaScript, **Google Gemini LLM, and **F
 
 ## 🧩 Project Structure
 
-
 Canteen-Management-System/
 │
-├── .git/                    # Git version control
+├── .idx/                    # IDX environment configuration
 ├── .next/                   # Next.js build output
+├── docs/                    # Project documentation & guides
 ├── node_modules/            # Dependencies
 │
 ├── public/                  # Static assets
@@ -141,31 +148,31 @@ Canteen-Management-System/
 │   └── icons/               # App icons and images
 │
 ├── src/                     # Application source code
-│   ├── components/          # React components
-│   │   ├── customer/        # Customer interface components
-│   │   ├── caterer/         # Caterer dashboard components
-│   │   ├── shared/          # Shared UI components
-│   │   └── ui/              # Base UI components
+│   ├── ai/                  # AI logic & Gemini integration
+│   ├── app/                 # Next.js App Router (Pages & Layouts)
+│   │   ├── customer/        # Customer-facing routes
+│   │   └── caterer/         # Caterer-facing routes
 │   │
-│   ├── lib/                 # Utility functions
-│   │   ├── firebase.js      # Firebase configuration
-│   │   ├── gemini.js        # Gemini AI integration
-│   │   └── utils.js         # Helper functions
+│   ├── components/          # Reusable React components
+│   │   ├── customer/        # Customer specific components
+│   │   ├── caterer/         # Caterer specific components
+│   │   └── ui/              # Shared UI elements (buttons, inputs)
 │   │
-│   ├── pages/               # Next.js pages
-│   │   ├── api/             # API routes
-│   │   ├── customer/        # Customer pages
-│   │   ├── caterer/         # Caterer pages
-│   │   └── index.js         # Home page
-│   │
-│   └── styles/              # Global styles
+│   ├── context/             # React Context (Global state management)
+│   ├── firebase/            # Firebase configuration & setup
+│   ├── hooks/               # Custom React hooks
+│   └── lib/                 # Utility functions
 │
 ├── .env                     # Environment variables
 ├── .gitignore               # Git ignore rules
-├── next.config.js           # Next.js configuration
+├── apphosting.yaml          # Firebase App Hosting configuration
+├── components.json          # UI component library config
+├── firestore.rules          # Firebase Firestore security rules
+├── next.config.ts           # Next.js configuration
 ├── package.json             # Dependencies and scripts
-├── tailwind.config.js       # Tailwind CSS configuration
-├── tsconfig.json            # TypeScript configuration (if used)
+├── postcss.config.mjs       # PostCSS configuration
+├── tailwind.config.ts       # Tailwind CSS configuration
+├── tsconfig.json            # TypeScript configuration
 └── README.md                # Project documentation
 
 
