@@ -182,15 +182,20 @@ Canteen-Management-System/
 ### Clone the repository
 
 bash
+
 git clone https://github.com/your-username/canteen-management-system.git
+
 cd canteen-management-system
 
 
 ### Install dependencies
 
 bash
+
 npm install
+
 # or
+
 yarn install
 
 
@@ -215,8 +220,11 @@ NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_api_key
 ### Run the development server
 
 bash
+
 npm run dev
+
 # or
+
 yarn dev
 
 
@@ -233,6 +241,7 @@ http://localhost:3000
 ### Firebase Realtime Database Collections
 
 #### Orders Collection
+
 javascript
 {
   orderId: "order_123",
@@ -248,6 +257,7 @@ javascript
 
 
 #### Menu Collection
+
 javascript
 {
   dishId: "dish_001",
@@ -262,6 +272,7 @@ javascript
 
 
 #### Tokens Collection
+
 javascript
 {
   tokenNumber: 42,
@@ -272,6 +283,7 @@ javascript
 
 
 #### Feedback Collection
+
 javascript
 {
   feedbackId: "feedback_123",
