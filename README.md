@@ -110,6 +110,11 @@ Built using *Next.js, **Tailwind CSS, **JavaScript, **Google Gemini LLM, and **F
 - *Actionable Insights*: Identify items for quality improvement or promotion
 - *Real-Time Updates*: Instant reflection of new orders and reviews
 
+### 🤖 AI Powered Review Analysis for Caterer
+- *Positive Feedback*: Analyzes all the reviews and summarizes all positives in them for each dish
+- *Negative Feedback*: Summarizes negatives from all the reviews for specific dish
+- *Suggestions*: Provide suggestions on how to improve negatives to boost sales
+
 ---
 
 ## 🎯 System Workflow
@@ -352,7 +357,6 @@ javascript
 - 🏪 *Inventory Management*: Automatic availability updates
 - 📸 *QR Code System*: Scan tokens for collection
 - 🎁 *Loyalty Programs*: Rewards based on orders and reviews
-- 💬 *Sentiment Analysis*: AI-powered review analysis
 - 🌐 *Multi-Language Support*: Regional language options
 
 ---
@@ -381,6 +385,7 @@ For questions, suggestions, or issues:
 ## 🙏 Acknowledgments
 
 - *IIIT Dharwad* for providing resources and support
+- *Dr. Animesh Chaturvedi* for guidance on the project
 - *Google Gemini* for AI recommendation capabilities
 - *Firebase* for real-time database infrastructure
 - *Next.js* and *Tailwind CSS* communities for excellent documentation
