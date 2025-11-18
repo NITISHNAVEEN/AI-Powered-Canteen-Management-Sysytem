@@ -387,7 +387,7 @@ For questions, suggestions, or issues:
 ## 🙏 Acknowledgments
 
 - *IIIT Dharwad* for providing resources and support
-- *Dr. Animesh Chaturvedi* for guidance on the project
+- *Dr. Animesh Chaturvedi Sir* for guidance on the project
 - *Google Gemini* for AI recommendation capabilities
 - *Firebase* for real-time database infrastructure
 - *Next.js* and *Tailwind CSS* communities for excellent documentation
